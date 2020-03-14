@@ -27,6 +27,10 @@
   gcc -E -dM - < /dev/null |grep ENDIAN
 */
 
+#if defined(__KERNEL__) && !defined(__BYTE_ORDER)
+#define __BYTE_ORDER        0
+#endif
+
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #include <machine/endian.h>
 #endif
@@ -35,46 +39,64 @@
 #include <endian.h>
 #define __BYTE_ORDER BYTE_ORDER
 #if BYTE_ORDER == LITTLE_ENDIAN
-#define __LITTLE_ENDIAN__
+#define __NLITTLE_ENDIAN__  1234
 #else
-#define __BIG_ENDIAN__
+#define __NBIG_ENDIAN__     4321
 #endif/* BYTE_ORDER */
 #endif/* __OPENBSD__ */
 
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
+#ifndef __NLITTLE_ENDIAN__
+#define __NLITTLE_ENDIAN__  1234
 #endif
 #else
-#ifndef __BIG_ENDIAN__
-#define __BIG_ENDIAN__
+#ifndef __NBIG_ENDIAN__
+#define __NBIG_ENDIAN__     4321
 #endif
 #endif
 
 #ifdef WIN32
-#ifndef __LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__ 1
+#ifndef __NLITTLE_ENDIAN__
+#define __NLITTLE_ENDIAN__  1234
 #endif
 #endif
 
-#if !(defined(__LITTLE_ENDIAN__) || defined(__BIG_ENDIAN__))
+//Kernel byteorder
+#ifndef __KERNEL__
+#if !(defined(__NLITTLE_ENDIAN__) || defined(__NBIG_ENDIAN__))
 #if defined(__mips__)
 #undef __LITTLE_ENDIAN__
 #undef __LITTLE_ENDIAN
-#define __BIG_ENDIAN__
+#undef __NLITTLE_ENDIAN__
+#define __NBIG_ENDIAN__     4321
 #endif
 
 /* Everything else */
 #if (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__))
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define __LITTLE_ENDIAN__
+#define __NLITTLE_ENDIAN__  1234
 #else
-#define __BIG_ENDIAN__
+#define __NBIG_ENDIAN__     4321
 #endif
 #endif
+#endif
+#else //__KERNEL__
 
+#undef __NLITTLE_ENDIAN__
+#undef __NBIG_ENDIAN__
+#undef __BYTE_ORDER
+
+#if defined(__LITTLE_ENDIAN)
+#define __NLITTLE_ENDIAN__ __LITTLE_ENDIAN
+#define __BYTE_ORDER __LITTLE_ENDIAN
+#elif defined(__BIG_ENDIAN)
+#define __NBIG_ENDIAN__ __BIG_ENDIAN
+#define __BYTE_ORDER __BIG_ENDIAN
+#else
+#error "Kernel Byte order must be defined."
 #endif
+#endif //__KERNEL__
 
 #define NDPI_USE_ASYMMETRIC_DETECTION                           0
 #define NDPI_SELECTION_BITMASK_PROTOCOL_SIZE			u_int32_t
@@ -149,8 +171,8 @@
  * or the excluded bitmask contains the protocol
  */
 #define NDPI_FLOW_PROTOCOL_EXCLUDED(ndpi_struct,flow,protocol) ((flow) != NULL && \
-								( NDPI_COMPARE_PROTOCOL_TO_BITMASK((ndpi_struct)->detection_bitmask, (protocol)) == 0 || \
-								  NDPI_COMPARE_PROTOCOL_TO_BITMASK((flow)->excluded_protocol_bitmask, (protocol)) != 0 ) )
+    ( NDPI_COMPARE_PROTOCOL_TO_BITMASK((ndpi_struct)->detection_bitmask, (protocol)) == 0 || \
+    NDPI_COMPARE_PROTOCOL_TO_BITMASK((flow)->excluded_protocol_bitmask, (protocol)) != 0 ) )
 
 /* misc definitions */
 #define NDPI_DEFAULT_MAX_TCP_RETRANSMISSION_WINDOW_SIZE 0x10000
@@ -180,14 +202,14 @@
 #define NDPI_SOULSEEK_CONNECTION_IP_TICK_TIMEOUT               600
 
 #ifdef NDPI_ENABLE_DEBUG_MESSAGES
- #define NDPI_LOG(proto, m, log_level, args...)		                                 \
-  {								                         \
+#define NDPI_LOG(proto, m, log_level, args...)		                                 \
+{								                         \
     struct ndpi_detection_module_struct *mod = (struct ndpi_detection_module_struct*) m; \
     if(mod != NULL && mod->ndpi_debug_printf != NULL)		                         \
-      (*(mod->ndpi_debug_printf))(proto, mod, log_level, __FILE__, __FUNCTION__, __LINE__, args); \
-  }
+    (*(mod->ndpi_debug_printf))(proto, mod, log_level, __FILE__, __FUNCTION__, __LINE__, args); \
+    }
 
- /* We must define NDPI_CURRENT_PROTO before include ndpi_main.h !!! 
+/* We must define NDPI_CURRENT_PROTO before include ndpi_main.h !!!
   *
   * #include "ndpi_protocol_ids.h"
   * #define NDPI_CURRENT_PROTO NDPI_PROTOCOL_XXXX
@@ -195,33 +217,33 @@
   *
   */
 
- #ifndef NDPI_CURRENT_PROTO
- #define NDPI_CURRENT_PROTO NDPI_PROTO_UNKNOWN
- #endif
+#ifndef NDPI_CURRENT_PROTO
+#define NDPI_CURRENT_PROTO NDPI_PROTO_UNKNOWN
+#endif
 
- #define NDPI_LOG_ERR(mod, args...)		                                 \
-  if(mod && mod->ndpi_log_level >= NDPI_LOG_ERROR) {	                         \
+#define NDPI_LOG_ERR(mod, args...)		                                 \
+    if(mod && mod->ndpi_log_level >= NDPI_LOG_ERROR) {	                         \
     if(mod != NULL && mod->ndpi_debug_printf != NULL)		                         \
-      (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_ERROR , __FILE__, __FUNCTION__, __LINE__, args); \
-  }
+    (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_ERROR , __FILE__, __FUNCTION__, __LINE__, args); \
+    }
 
- #define NDPI_LOG_INFO(mod, args...)		                                 \
-  if(mod && mod->ndpi_log_level >= NDPI_LOG_TRACE) {	                         \
+#define NDPI_LOG_INFO(mod, args...)		                                 \
+    if(mod && mod->ndpi_log_level >= NDPI_LOG_TRACE) {	                         \
     if(mod != NULL && mod->ndpi_debug_printf != NULL)		                         \
-      (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_TRACE , __FILE__, __FUNCTION__, __LINE__, args); \
-  }
+    (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_TRACE , __FILE__, __FUNCTION__, __LINE__, args); \
+    }
 
- #define NDPI_LOG_DBG(mod, args...)		                                 \
-  if(mod && mod->ndpi_log_level >= NDPI_LOG_DEBUG) {	                         \
+#define NDPI_LOG_DBG(mod, args...)		                                 \
+    if(mod && mod->ndpi_log_level >= NDPI_LOG_DEBUG) {	                         \
     if(mod != NULL && mod->ndpi_debug_printf != NULL)		                         \
-      (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_DEBUG , __FILE__, __FUNCTION__, __LINE__, args); \
-  }
+    (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_DEBUG , __FILE__, __FUNCTION__, __LINE__, args); \
+    }
 
- #define NDPI_LOG_DBG2(mod, args...)		                                 \
-  if(mod && mod->ndpi_log_level >= NDPI_LOG_DEBUG_EXTRA) {	                         \
+#define NDPI_LOG_DBG2(mod, args...)		                                 \
+    if(mod && mod->ndpi_log_level >= NDPI_LOG_DEBUG_EXTRA) {	                         \
     if(mod != NULL && mod->ndpi_debug_printf != NULL)		                         \
-      (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_DEBUG_EXTRA , __FILE__, __FUNCTION__, __LINE__, args); \
-  }
+    (*(mod->ndpi_debug_printf))(NDPI_CURRENT_PROTO, mod, NDPI_LOG_DEBUG_EXTRA , __FILE__, __FUNCTION__, __LINE__, args); \
+    }
 
 #else							/* not defined NDPI_ENABLE_DEBUG_MESSAGES */
 # ifdef WIN32
@@ -231,11 +253,19 @@
 # define NDPI_LOG_DBG(...) {}
 # define NDPI_LOG_DBG2(...) {}
 # else
+#ifdef __KERNEL__
+# define NDPI_LOG(proto, mod, log_level, args...) { /* printf(args); */ }
+# define NDPI_LOG_ERR(mod, args...)  { /* printk(KERN_ERR (args)); */ }
+# define NDPI_LOG_INFO(mod, args...) { /* printf(args); */ }
+# define NDPI_LOG_DBG(mod,  args...) { /* printf(args); */ }
+# define NDPI_LOG_DBG2(mod, args...) { /* printf(args); */ }
+#else
 # define NDPI_LOG(proto, mod, log_level, args...) { /* printf(args); */ }
 # define NDPI_LOG_ERR(mod, args...)  { printf(args); }
 # define NDPI_LOG_INFO(mod, args...) { /* printf(args); */ }
 # define NDPI_LOG_DBG(mod,  args...) { /* printf(args); */ }
 # define NDPI_LOG_DBG2(mod, args...) { /* printf(args); */ }
+#endif
 # endif
 #endif							/* NDPI_ENABLE_DEBUG_MESSAGES */
 
@@ -250,7 +280,7 @@
 
 /** macro to compare 2 IPv6 addresses with each other to identify the "smaller" IPv6 address  */
 #define NDPI_COMPARE_IPV6_ADDRESS_STRUCTS(x,y)  \
-  ((x.u6_addr.u6_addr64[0] < y.u6_addr.u6_addr64[0]) || ((x.u6_addr.u6_addr64[0] == y.u6_addr.u6_addr64[0]) && (x.u6_addr.u6_addr64[1] < y.u6_addr.u6_addr64[1])))
+    ((x.u6_addr.u6_addr64[0] < y.u6_addr.u6_addr64[0]) || ((x.u6_addr.u6_addr64[0] == y.u6_addr.u6_addr64[0]) && (x.u6_addr.u6_addr64[1] < y.u6_addr.u6_addr64[1])))
 
 #define NDPI_NUM_BITS              512
 
@@ -288,9 +318,9 @@
 #define ndpi_max(a,b)   ((a > b) ? a : b)
 
 #define NDPI_PARSE_PACKET_LINE_INFO(ndpi_struct,flow,packet)		\
-                        if (packet->packet_lines_parsed_complete != 1) {        \
-			  ndpi_parse_packet_line_info(ndpi_struct,flow);	\
-                        }                                                       \
+    if (packet->packet_lines_parsed_complete != 1) {        \
+    ndpi_parse_packet_line_info(ndpi_struct,flow);	\
+    }                                                       \
 
 #define NDPI_IPSEC_PROTOCOL_ESP	   50
 #define NDPI_IPSEC_PROTOCOL_AH	   51
@@ -313,16 +343,16 @@
 #define get_ul8(X,O) get_u_int8_t(X,O)
 
 
-#if defined(__LITTLE_ENDIAN__) || defined(_LITTLE_ENDIAN)
+#if defined(__NLITTLE_ENDIAN__)
 #define get_l16(X,O)  get_u_int16_t(X,O)
 #define get_l32(X,O)  get_u_int32_t(X,O)
-#elif defined(__BIG_ENDIAN__) || defined(__BIG_ENDIAN)
+#elif defined(__NBIG_ENDIAN__)
 /* convert the bytes from big to little endian */
 # define get_l16(X,O) bswap_16(get_u_int16_t(X,O))
 # define get_l32(X,O) bswap_32(get_u_int32_t(X,O))
 #else
-#error "__BYTE_ORDER MUST BE DEFINED !"
-#endif							/* __BYTE_ORDER */
+#error "Byte order must be defined"
+#endif
 
 /* define memory callback function */
 #define match_first_bytes(payload,st) (memcmp((payload),(st),(sizeof(st)-1))==0)

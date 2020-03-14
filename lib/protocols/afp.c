@@ -20,7 +20,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with nDPI.  If not, see <http://www.gnu.org/licenses/>.
  *
- * 
+ *
  */
 
 #include "ndpi_protocol_ids.h"
@@ -30,71 +30,71 @@
 #include "ndpi_api.h"
 
 struct afpHeader {
-  u_int8_t flags, command;
-  u_int16_t requestId;
-  u_int32_t dataOffset, length, reserved;
+    u_int8_t flags, command;
+    u_int16_t requestId;
+    u_int32_t dataOffset, length, reserved;
 };
 
 static void ndpi_int_afp_add_connection(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_AFP, NDPI_PROTOCOL_UNKNOWN);
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_AFP, NDPI_PROTOCOL_UNKNOWN);
 }
 
 
 void ndpi_search_afp(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search AFP\n");
+    NDPI_LOG_DBG(ndpi_struct, "search AFP\n");
 
-  if (packet->payload_packet_len >= sizeof(struct afpHeader)) {
-    struct afpHeader *h = (struct afpHeader*)packet->payload;
+    if (packet->payload_packet_len >= sizeof(struct afpHeader)) {
+        struct afpHeader *h = (struct afpHeader*)packet->payload;
 
-    if(packet->payload_packet_len > 128) {
-      /*
-	When we transfer a large data chunk, unless we have observed
-	the initial connection, we need to discard these packets
-	as they are not an indication that this flow is not AFP	
+        if(packet->payload_packet_len > 128) {
+            /*
+    When we transfer a large data chunk, unless we have observed
+    the initial connection, we need to discard these packets
+    as they are not an indication that this flow is not AFP
       */
-      return;
-    }
+            return;
+        }
 
-    /*
+        /*
      * this will detect the OpenSession command of the Data Stream Interface (DSI) protocol
      * which is exclusively used by the Apple Filing Protocol (AFP) on TCP/IP networks
      */
-    if (packet->payload_packet_len >= 22 && get_u_int16_t(packet->payload, 0) == htons(0x0004) &&
-	get_u_int16_t(packet->payload, 2) == htons(0x0001) && get_u_int32_t(packet->payload, 4) == 0 &&
-	get_u_int32_t(packet->payload, 8) == htonl(packet->payload_packet_len - 16) &&
-	get_u_int32_t(packet->payload, 12) == 0 && get_u_int16_t(packet->payload, 16) == htons(0x0104)) {
+        if (packet->payload_packet_len >= 22 && get_u_int16_t(packet->payload, 0) == htons(0x0004) &&
+                get_u_int16_t(packet->payload, 2) == htons(0x0001) && get_u_int32_t(packet->payload, 4) == 0 &&
+                get_u_int32_t(packet->payload, 8) == htonl(packet->payload_packet_len - 16) &&
+                get_u_int32_t(packet->payload, 12) == 0 && get_u_int16_t(packet->payload, 16) == htons(0x0104)) {
 
-      NDPI_LOG_INFO(ndpi_struct, "found AFP: DSI OpenSession\n");
-      ndpi_int_afp_add_connection(ndpi_struct, flow);
-      return;
+            NDPI_LOG_INFO(ndpi_struct, "found AFP: DSI OpenSession\n");
+            ndpi_int_afp_add_connection(ndpi_struct, flow);
+            return;
+        }
+
+        if((h->flags <= 1)
+                && ((h->command >= 1) && (h->command <= 8))
+                && (h->reserved == 0)
+                && (packet->payload_packet_len >= (sizeof(struct afpHeader)+ntohl(h->length)))) {
+            NDPI_LOG_INFO(ndpi_struct, "found AFP: DSI\n");
+            ndpi_int_afp_add_connection(ndpi_struct, flow);
+            return;
+        }
     }
 
-    if((h->flags <= 1)
-       && ((h->command >= 1) && (h->command <= 8))
-       && (h->reserved == 0)
-       && (packet->payload_packet_len >= (sizeof(struct afpHeader)+ntohl(h->length)))) {
-      NDPI_LOG_INFO(ndpi_struct, "found AFP: DSI\n");
-      ndpi_int_afp_add_connection(ndpi_struct, flow);
-      return;
-    }
-  }
-
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 }
 
 
 void init_afp_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("AFP", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_AFP,
-				      ndpi_search_afp,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
-  *id += 1;
+    ndpi_set_bitmask_protocol_detection("AFP", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_AFP,
+                                        ndpi_search_afp,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
+    *id += 1;
 }
 

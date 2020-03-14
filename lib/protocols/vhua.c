@@ -24,7 +24,7 @@
 #include "ndpi_api.h"
 
 /*
-  http://www.vhua.com 
+  http://www.vhua.com
 
   Skype-like Chinese phone protocol
 
@@ -32,48 +32,47 @@
 
 
 static void ndpi_int_vhua_add_connection(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_VHUA, NDPI_PROTOCOL_UNKNOWN);
-  NDPI_LOG_INFO(ndpi_struct, "found VHUA\n");
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_VHUA, NDPI_PROTOCOL_UNKNOWN);
+    NDPI_LOG_INFO(ndpi_struct, "found VHUA\n");
 }
 
-
 static void ndpi_check_vhua(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  u_int32_t payload_len = packet->payload_packet_len;
-  u_char p0[] =  { 0x05, 0x14, 0x3a, 0x05, 0x08, 0xf8, 0xa1, 0xb1, 0x03 };
+    struct ndpi_packet_struct *packet = &flow->packet;
+    u_int32_t payload_len = packet->payload_packet_len;
+    u_char p0[] =  { 0x05, 0x14, 0x3a, 0x05, 0x08, 0xf8, 0xa1, 0xb1, 0x03 };
 
-  if(payload_len == 0) return; /* Shouldn't happen */
+    if(payload_len == 0) return; /* Shouldn't happen */
 
-  /* Break after 3 packets. */
-  if((flow->packet_counter > 3)
-     || (packet->udp == NULL)
-     || (packet->payload_packet_len < sizeof(p0))) {
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-  } else if(memcmp(packet->payload, p0, sizeof(p0)) == 0) {
-    ndpi_int_vhua_add_connection(ndpi_struct, flow);
-  }
+    /* Break after 3 packets. */
+    if((flow->packet_counter > 3)
+            || (packet->udp == NULL)
+            || (packet->payload_packet_len < sizeof(p0))) {
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+    } else if(memcmp(packet->payload, p0, sizeof(p0)) == 0) {
+        ndpi_int_vhua_add_connection(ndpi_struct, flow);
+    }
 }
 
 void ndpi_search_vhua(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search VHUA\n");
+    NDPI_LOG_DBG(ndpi_struct, "search VHUA\n");
 
-  /* skip marked packets */
-  if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_VHUA) {
-    ndpi_check_vhua(ndpi_struct, flow);
-  }
+    /* skip marked packets */
+    if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_VHUA) {
+        ndpi_check_vhua(ndpi_struct, flow);
+    }
 }
 
 
 void init_vhua_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("VHUA", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_VHUA,
-				      ndpi_search_vhua,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
-  *id += 1;
+    ndpi_set_bitmask_protocol_detection("VHUA", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_VHUA,
+                                        ndpi_search_vhua,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
+    *id += 1;
 }
 

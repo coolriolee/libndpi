@@ -3,9 +3,6 @@
 #include "libinjection_xss.h"
 #include "libinjection_html5.h"
 
-#include <assert.h>
-#include <stdio.h>
-
 typedef enum attribute {
     TYPE_NONE
     , TYPE_BLACK     /* ban always */
@@ -315,16 +312,16 @@ static int is_black_tag(const char* s, size_t len)
 
     /* anything SVG related */
     if ((s[0] == 's' || s[0] == 'S') &&
-        (s[1] == 'v' || s[1] == 'V') &&
-        (s[2] == 'g' || s[2] == 'G')) {
+            (s[1] == 'v' || s[1] == 'V') &&
+            (s[2] == 'g' || s[2] == 'G')) {
         /*        printf("Got SVG tag \n"); */
         return 1;
     }
 
     /* Anything XSL(t) related */
     if ((s[0] == 'x' || s[0] == 'X') &&
-        (s[1] == 's' || s[1] == 'S') &&
-        (s[2] == 'l' || s[2] == 'L')) {
+            (s[1] == 's' || s[1] == 'S') &&
+            (s[2] == 'l' || s[2] == 'L')) {
         /*      printf("Got XSL tag\n"); */
         return 1;
     }
@@ -464,7 +461,7 @@ int libinjection_is_xss(const char* s, size_t len, int flags)
                     return 1;
                 }
                 break;
-/*
+                /*
   default:
   assert(0);
 */
@@ -479,13 +476,13 @@ int libinjection_is_xss(const char* s, size_t len, int flags)
             /* IE conditional comment */
             if (h5.token_len > 3) {
                 if (h5.token_start[0] == '[' &&
-                    (h5.token_start[1] == 'i' || h5.token_start[1] == 'I') &&
-                    (h5.token_start[2] == 'f' || h5.token_start[2] == 'F')) {
+                        (h5.token_start[1] == 'i' || h5.token_start[1] == 'I') &&
+                        (h5.token_start[2] == 'f' || h5.token_start[2] == 'F')) {
                     return 1;
                 }
                 if ((h5.token_start[0] == 'x' || h5.token_start[0] == 'X') &&
-                    (h5.token_start[1] == 'm' || h5.token_start[1] == 'M') &&
-                    (h5.token_start[2] == 'l' || h5.token_start[2] == 'L')) {
+                        (h5.token_start[1] == 'm' || h5.token_start[1] == 'M') &&
+                        (h5.token_start[2] == 'l' || h5.token_start[2] == 'L')) {
                     return 1;
                 }
             }

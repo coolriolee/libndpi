@@ -35,66 +35,67 @@
 #define EAQ_DEFAULT_SIZE     16
 
 static void ndpi_int_eaq_add_connection(struct ndpi_detection_module_struct *ndpi_struct,
-					struct ndpi_flow_struct *flow) {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_EAQ, NDPI_PROTOCOL_UNKNOWN);
+                                        struct ndpi_flow_struct *flow) {
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_EAQ, NDPI_PROTOCOL_UNKNOWN);
 }
 
 
-void ndpi_search_eaq(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  if (!flow) {
-    return;
-  }
+void ndpi_search_eaq(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
+{
+    struct ndpi_packet_struct *packet;
+    u_int16_t sport,dport;
 
-  struct ndpi_packet_struct *packet = &flow->packet;
-  if (!packet) {
-    return;
-  }
+    if (!flow) return;
 
-  u_int16_t sport = ntohs(packet->udp->source), dport = ntohs(packet->udp->dest);
-  
-  NDPI_LOG_DBG(ndpi_struct, "search eaq\n");
+    packet = &flow->packet;
+    if (!packet) return;
 
-  do {
-    if( (packet->payload_packet_len != EAQ_DEFAULT_SIZE) ||
-        ((sport != EAQ_DEFAULT_PORT) && (dport != EAQ_DEFAULT_PORT)) )
-	    break;
-      
-    if(packet->udp != NULL) {
-      u_int32_t seq = (packet->payload[0] * 1000) + (packet->payload[1] * 100) + (packet->payload[2] * 10) + packet->payload[3];
+    sport = ntohs(packet->udp->source);
+    dport = ntohs(packet->udp->dest);
 
-      if(flow->l4.udp.eaq_pkt_id == 0)
-        flow->l4.udp.eaq_sequence = seq;
-      else {
-        if( (flow->l4.udp.eaq_sequence != seq) &&
-	    ((flow->l4.udp.eaq_sequence+1) != seq))
-	  break;
-	else
-	  flow->l4.udp.eaq_sequence = seq;
-      }
+    NDPI_LOG_DBG(ndpi_struct, "search eaq\n");
 
-      if(++flow->l4.udp.eaq_pkt_id == 4) {
-        /* We have collected enough packets so we assume it's EAQ */
-        NDPI_LOG_INFO(ndpi_struct, "found eaq\n");
-        ndpi_int_eaq_add_connection(ndpi_struct, flow);
-        return;
-      } else
-	return;
-    }
-  } while(0);
+    do {
+        if( (packet->payload_packet_len != EAQ_DEFAULT_SIZE) ||
+                ((sport != EAQ_DEFAULT_PORT) && (dport != EAQ_DEFAULT_PORT)) )
+            break;
 
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        if(packet->udp != NULL) {
+            u_int32_t seq = (packet->payload[0] * 1000) + (packet->payload[1] * 100) + (packet->payload[2] * 10) + packet->payload[3];
+
+            if(flow->l4.udp.eaq_pkt_id == 0)
+                flow->l4.udp.eaq_sequence = seq;
+            else {
+                if( (flow->l4.udp.eaq_sequence != seq) &&
+                        ((flow->l4.udp.eaq_sequence+1) != seq))
+                    break;
+                else
+                    flow->l4.udp.eaq_sequence = seq;
+            }
+
+            if(++flow->l4.udp.eaq_pkt_id == 4) {
+                /* We have collected enough packets so we assume it's EAQ */
+                NDPI_LOG_INFO(ndpi_struct, "found eaq\n");
+                ndpi_int_eaq_add_connection(ndpi_struct, flow);
+                return;
+            } else
+                return;
+        }
+    } while(0);
+
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 
 }
 
 
 void init_eaq_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("EAQ", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_EAQ,
-				      ndpi_search_eaq,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
+    ndpi_set_bitmask_protocol_detection("EAQ", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_EAQ,
+                                        ndpi_search_eaq,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }

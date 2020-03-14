@@ -1,7 +1,5 @@
+#include "ndpi_api.h"
 #include "libinjection_html5.h"
-
-#include <string.h>
-#include <assert.h>
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -668,15 +666,15 @@ static int h5_state_markup_declaration_open(h5_state_t* hs)
     TRACE();
     remaining = hs->len - hs->pos;
     if (remaining >= 7 &&
-        /* case insensitive */
-        (hs->s[hs->pos + 0] == 'D' || hs->s[hs->pos + 0] == 'd') &&
-        (hs->s[hs->pos + 1] == 'O' || hs->s[hs->pos + 1] == 'o') &&
-        (hs->s[hs->pos + 2] == 'C' || hs->s[hs->pos + 2] == 'c') &&
-        (hs->s[hs->pos + 3] == 'T' || hs->s[hs->pos + 3] == 't') &&
-        (hs->s[hs->pos + 4] == 'Y' || hs->s[hs->pos + 4] == 'y') &&
-        (hs->s[hs->pos + 5] == 'P' || hs->s[hs->pos + 5] == 'p') &&
-        (hs->s[hs->pos + 6] == 'E' || hs->s[hs->pos + 6] == 'e')
-        ) {
+            /* case insensitive */
+            (hs->s[hs->pos + 0] == 'D' || hs->s[hs->pos + 0] == 'd') &&
+            (hs->s[hs->pos + 1] == 'O' || hs->s[hs->pos + 1] == 'o') &&
+            (hs->s[hs->pos + 2] == 'C' || hs->s[hs->pos + 2] == 'c') &&
+            (hs->s[hs->pos + 3] == 'T' || hs->s[hs->pos + 3] == 't') &&
+            (hs->s[hs->pos + 4] == 'Y' || hs->s[hs->pos + 4] == 'y') &&
+            (hs->s[hs->pos + 5] == 'P' || hs->s[hs->pos + 5] == 'p') &&
+            (hs->s[hs->pos + 6] == 'E' || hs->s[hs->pos + 6] == 'e')
+            ) {
         return h5_state_doctype(hs);
     } else if (remaining >= 7 &&
                /* upper case required */
@@ -687,7 +685,7 @@ static int h5_state_markup_declaration_open(h5_state_t* hs)
                hs->s[hs->pos + 4] == 'T' &&
                hs->s[hs->pos + 5] == 'A' &&
                hs->s[hs->pos + 6] == '['
-        ) {
+               ) {
         hs->pos += 7;
         return h5_state_cdata(hs);
     } else if (remaining >= 2 &&

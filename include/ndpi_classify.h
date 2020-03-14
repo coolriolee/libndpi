@@ -44,7 +44,7 @@
 #define NDPI_CLASSIFY_H
 
 
-
+#ifndef __KERNEL__
 /* constants */
 #define NUM_PARAMETERS_SPLT_LOGREG 208
 #define NUM_PARAMETERS_BD_LOGREG 464
@@ -67,16 +67,16 @@ extern float parameters_splt[NUM_PARAMETERS_SPLT_LOGREG];
 
 /* Classifier functions */
 float ndpi_classify(const unsigned short *pkt_len, const struct timeval *pkt_time,
-       const unsigned short *pkt_len_twin, const struct timeval *pkt_time_twin,
-       struct timeval start_time, struct timeval start_time_twin, uint32_t max_num_pkt_len,
-       uint16_t sp, uint16_t dp, uint32_t op, uint32_t ip, uint32_t np_o, uint32_t np_i,
-       uint32_t ob, uint32_t ib, uint16_t use_bd, const uint32_t *bd, const uint32_t *bd_t);
+                    const unsigned short *pkt_len_twin, const struct timeval *pkt_time_twin,
+                    struct timeval start_time, struct timeval start_time_twin, uint32_t max_num_pkt_len,
+                    uint16_t sp, uint16_t dp, uint32_t op, uint32_t ip, uint32_t np_o, uint32_t np_i,
+                    uint32_t ob, uint32_t ib, uint16_t use_bd, const uint32_t *bd, const uint32_t *bd_t);
 
 void ndpi_merge_splt_arrays(const uint16_t *pkt_len, const struct timeval *pkt_time,
-       const uint16_t *pkt_len_twin, const struct timeval *pkt_time_twin,
-       struct timeval start_time, struct timeval start_time_twin,
-       uint16_t s_idx, uint16_t r_idx,
-       uint16_t *merged_lens, uint16_t *merged_times);
+                            const uint16_t *pkt_len_twin, const struct timeval *pkt_time_twin,
+                            struct timeval start_time, struct timeval start_time_twin,
+                            uint16_t s_idx, uint16_t r_idx,
+                            uint16_t *merged_lens, uint16_t *merged_times);
 
 void ndpi_update_params(classifier_type_codes_t param_type, const char *param_file);
 
@@ -88,5 +88,5 @@ void ndpi_timer_clear(struct timeval *a);
 unsigned int ndpi_timeval_to_milliseconds(struct timeval ts);
 unsigned int ndpi_timeval_to_microseconds(struct timeval ts);
 void ndpi_log_timestamp(char *log_ts, uint32_t log_ts_len);
-
+#endif //__KERNEL__ n
 #endif /* NDPI_CLASSIFY_H */

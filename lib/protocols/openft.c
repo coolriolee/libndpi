@@ -19,7 +19,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with nDPI.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 #include "ndpi_protocol_ids.h"
@@ -29,39 +29,39 @@
 #include "ndpi_api.h"
 
 static void ndpi_int_openft_add_connection(struct ndpi_detection_module_struct
-					   *ndpi_struct, struct ndpi_flow_struct *flow)
+                                           *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_OPENFT, NDPI_PROTOCOL_UNKNOWN);
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_OPENFT, NDPI_PROTOCOL_UNKNOWN);
 }
 
 void ndpi_search_openft_tcp(struct ndpi_detection_module_struct
-							  *ndpi_struct, struct ndpi_flow_struct *flow)
+                            *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-	struct ndpi_packet_struct *packet = &flow->packet;
-	
-	if (packet->payload_packet_len > 5 && memcmp(packet->payload, "GET /", 5) == 0) {
-		NDPI_LOG_DBG2(ndpi_struct, "HTTP packet detected\n");
-		ndpi_parse_packet_line_info(ndpi_struct, flow);
-		if (packet->parsed_lines >= 2
-			&& packet->line[1].len > 13 && memcmp(packet->line[1].ptr, "X-OpenftAlias:", 14) == 0) {
-			NDPI_LOG_INFO(ndpi_struct, "found OpenFT\n");
-			ndpi_int_openft_add_connection(ndpi_struct, flow);
-			return;
-		}
-	}
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-	NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+    if (packet->payload_packet_len > 5 && memcmp(packet->payload, "GET /", 5) == 0) {
+        NDPI_LOG_DBG2(ndpi_struct, "HTTP packet detected\n");
+        ndpi_parse_packet_line_info(ndpi_struct, flow);
+        if (packet->parsed_lines >= 2
+                && packet->line[1].len > 13 && memcmp(packet->line[1].ptr, "X-OpenftAlias:", 14) == 0) {
+            NDPI_LOG_INFO(ndpi_struct, "found OpenFT\n");
+            ndpi_int_openft_add_connection(ndpi_struct, flow);
+            return;
+        }
+    }
+
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 }
 
 
 void init_openft_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("OpenFT", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_OPENFT,
-				      ndpi_search_openft_tcp,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
+    ndpi_set_bitmask_protocol_detection("OpenFT", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_OPENFT,
+                                        ndpi_search_openft_tcp,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }

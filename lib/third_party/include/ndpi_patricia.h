@@ -58,19 +58,33 @@
 
 #define addroute make_and_lookup
 
+#ifdef __KERNEL__
+#include <linux/types.h>
+#include <linux/errno.h>
+#else
 #include <sys/types.h> /* for u_* definitions (on FreeBSD 5) */
 #include <errno.h> /* for EAFNOSUPPORT */
+#endif
 
 #ifndef EAFNOSUPPORT
-#  defined EAFNOSUPPORT WSAEAFNOSUPPORT
+#defined EAFNOSUPPORT WSAEAFNOSUPPORT
 #else
 #ifndef WIN32
-#  include <netinet/in.h> /* for struct in_addr */
+#ifdef __KERNEL__
+#include <linux/in.h>
+#include <linux/in6.h>
+#else
+#include <netinet/in.h> /* for struct in_addr */
+#endif
 #endif
 #endif
 
 #ifndef WIN32
+#ifdef __KERNEL__
+#include <linux/socket.h>
+#else
 #include <sys/socket.h> /* for AF_INET */
+#endif
 #else
 #include <winsock2.h>
 #include <ws2tcpip.h> /* IPv6 */

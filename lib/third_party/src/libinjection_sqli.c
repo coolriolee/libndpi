@@ -7,13 +7,7 @@
  *
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <assert.h>
-#include <stddef.h>
-
+#include "ndpi_api.h"
 #include "libinjection.h"
 #include "libinjection_sqli.h"
 #include "libinjection_sqli_data.h"
@@ -205,7 +199,7 @@ static int char_is_white(char ch) {
  * Sane people would just make a copy, up-case
  * and use a hash table.
  *
- * Required since libc version uses the current locale
+ * Required since libc version uses the ncurrent locale
  * and is much slower.
  */
 static int cstrcasecmp(const char *a, const char *b, size_t n)
@@ -359,7 +353,7 @@ static size_t parse_operator1(struct libinjection_sqli_state * sf)
     const char *cs = sf->s;
     size_t pos = sf->pos;
 
-    st_assign_char(sf->current, TYPE_OPERATOR, pos, 1, cs[pos]);
+    st_assign_char(sf->ncurrent, TYPE_OPERATOR, pos, 1, cs[pos]);
     return pos + 1;
 }
 
@@ -368,7 +362,7 @@ static size_t parse_other(struct libinjection_sqli_state * sf)
     const char *cs = sf->s;
     size_t pos = sf->pos;
 
-    st_assign_char(sf->current, TYPE_UNKNOWN, pos, 1, cs[pos]);
+    st_assign_char(sf->ncurrent, TYPE_UNKNOWN, pos, 1, cs[pos]);
     return pos + 1;
 }
 
@@ -377,7 +371,7 @@ static size_t parse_char(struct libinjection_sqli_state * sf)
     const char *cs = sf->s;
     size_t pos = sf->pos;
 
-    st_assign_char(sf->current, cs[pos], pos, 1, cs[pos]);
+    st_assign_char(sf->ncurrent, cs[pos], pos, 1, cs[pos]);
     return pos + 1;
 }
 
@@ -388,12 +382,12 @@ static size_t parse_eol_comment(struct libinjection_sqli_state * sf)
     size_t pos = sf->pos;
 
     const char *endpos =
-        (const char *) memchr((const void *) (cs + pos), '\n', slen - pos);
+            (const char *) memchr((const void *) (cs + pos), '\n', slen - pos);
     if (endpos == NULL) {
-        st_assign(sf->current, TYPE_COMMENT, pos, slen - pos, cs + pos);
+        st_assign(sf->ncurrent, TYPE_COMMENT, pos, slen - pos, cs + pos);
         return slen;
     } else {
-        st_assign(sf->current, TYPE_COMMENT, pos, (size_t)(endpos - cs) - pos, cs + pos);
+        st_assign(sf->ncurrent, TYPE_COMMENT, pos, (size_t)(endpos - cs) - pos, cs + pos);
         return (size_t)((endpos - cs) + 1);
     }
 }
@@ -408,7 +402,7 @@ static size_t parse_hash(struct libinjection_sqli_state * sf)
         sf->stats_comment_hash += 1;
         return parse_eol_comment(sf);
     } else {
-        st_assign_char(sf->current, TYPE_OPERATOR, sf->pos, 1, '#');
+        st_assign_char(sf->ncurrent, TYPE_OPERATOR, sf->pos, 1, '#');
         return sf->pos + 1;
     }
 }
@@ -439,7 +433,7 @@ static size_t parse_dash(struct libinjection_sqli_state * sf)
         sf->stats_comment_ddx += 1;
         return parse_eol_comment(sf);
     } else {
-        st_assign_char(sf->current, TYPE_OPERATOR, pos, 1, '-');
+        st_assign_char(sf->ncurrent, TYPE_OPERATOR, pos, 1, '-');
         return pos + 1;
     }
 }
@@ -531,7 +525,7 @@ static size_t parse_slash(struct libinjection_sqli_state * sf)
         ctype = TYPE_EVIL;
     }
 
-    st_assign(sf->current, ctype, pos, clen, cs + pos);
+    st_assign(sf->ncurrent, ctype, pos, clen, cs + pos);
     return pos + clen;
 }
 
@@ -546,10 +540,10 @@ static size_t parse_backslash(struct libinjection_sqli_state * sf)
      * Weird MySQL alias for NULL, "\N" (capital N only)
      */
     if (pos + 1 < slen && cs[pos +1] == 'N') {
-        st_assign(sf->current, TYPE_NUMBER, pos, 2, cs + pos);
+        st_assign(sf->ncurrent, TYPE_NUMBER, pos, 2, cs + pos);
         return pos + 2;
     } else {
-        st_assign_char(sf->current, TYPE_BACKSLASH, pos, 1, cs[pos]);
+        st_assign_char(sf->ncurrent, TYPE_BACKSLASH, pos, 1, cs[pos]);
         return pos + 1;
     }
 }
@@ -566,19 +560,19 @@ static size_t parse_operator2(struct libinjection_sqli_state * sf)
     }
 
     if (pos + 2 < slen &&
-        cs[pos] == '<' &&
-        cs[pos + 1] == '=' &&
-        cs[pos + 2] == '>') {
+            cs[pos] == '<' &&
+            cs[pos + 1] == '=' &&
+            cs[pos + 2] == '>') {
         /*
          * special 3-char operator
          */
-        st_assign(sf->current, TYPE_OPERATOR, pos, 3, cs + pos);
+        st_assign(sf->ncurrent, TYPE_OPERATOR, pos, 3, cs + pos);
         return pos + 3;
     }
 
     ch = sf->lookup(sf, LOOKUP_OPERATOR, cs + pos, 2);
     if (ch != CHAR_NULL) {
-        st_assign(sf->current, ch, pos, 2, cs+pos);
+        st_assign(sf->ncurrent, ch, pos, 2, cs+pos);
         return pos + 2;
     }
 
@@ -589,7 +583,7 @@ static size_t parse_operator2(struct libinjection_sqli_state * sf)
 
     if (cs[pos] == ':') {
         /* ':' is not an operator */
-        st_assign(sf->current, TYPE_COLON, pos, 1, cs+pos);
+        st_assign(sf->ncurrent, TYPE_COLON, pos, 1, cs+pos);
         return pos + 1;
     } else {
         /*
@@ -637,8 +631,8 @@ static size_t parse_string_core(const char *cs, const size_t len, size_t pos,
      * offset is to skip the perhaps first quote char
      */
     const char *qpos =
-        (const char *) memchr((const void *) (cs + pos + offset), delim,
-                              len - pos - offset);
+            (const char *) memchr((const void *) (cs + pos + offset), delim,
+                                  len - pos - offset);
 
     /*
      * then keep string open/close info
@@ -667,14 +661,14 @@ static size_t parse_string_core(const char *cs, const size_t len, size_t pos,
         } else if ( is_backslash_escaped(qpos - 1, cs + pos + offset)) {
             /* keep going, move ahead one character */
             qpos =
-                (const char *) memchr((const void *) (qpos + 1), delim,
-                                      (size_t)((cs + len) - (qpos + 1)));
+                    (const char *) memchr((const void *) (qpos + 1), delim,
+                                          (size_t)((cs + len) - (qpos + 1)));
             continue;
         } else if (is_double_delim_escaped(qpos, cs + len)) {
             /* keep going, move ahead two characters */
             qpos =
-                (const char *) memchr((const void *) (qpos + 2), delim,
-                                      (size_t)((cs + len) - (qpos + 2)));
+                    (const char *) memchr((const void *) (qpos + 2), delim,
+                                          (size_t)((cs + len) - (qpos + 2)));
             continue;
         } else {
             /* hey it's a normal string */
@@ -698,7 +692,7 @@ static size_t parse_string(struct libinjection_sqli_state * sf)
     /*
      * assert cs[pos] == single or double quote
      */
-    return parse_string_core(cs, slen, pos, sf->current, cs[pos], 1);
+    return parse_string_core(cs, slen, pos, sf->ncurrent, cs[pos], 1);
 }
 
 /**
@@ -715,7 +709,7 @@ static size_t parse_estring(struct libinjection_sqli_state * sf)
     if (pos + 2 >= slen || cs[pos+1] != CHAR_SINGLE) {
         return parse_word(sf);
     }
-    return parse_string_core(cs, slen, pos, sf->current, CHAR_SINGLE, 2);
+    return parse_string_core(cs, slen, pos, sf->ncurrent, CHAR_SINGLE, 2);
 }
 
 static size_t parse_ustring(struct libinjection_sqli_state * sf)
@@ -727,9 +721,9 @@ static size_t parse_ustring(struct libinjection_sqli_state * sf)
     if (pos + 2 < slen && cs[pos+1] == '&' && cs[pos+2] == '\'') {
         sf->pos += 2;
         pos = parse_string(sf);
-        sf->current->str_open = 'u';
-        if (sf->current->str_close == '\'') {
-            sf->current->str_close = 'u';
+        sf->ncurrent->str_open = 'u';
+        if (sf->ncurrent->str_close == '\'') {
+            sf->ncurrent->str_close = 'u';
         }
         return pos;
     } else {
@@ -746,15 +740,15 @@ static size_t parse_qstring_core(struct libinjection_sqli_state * sf, size_t off
     size_t pos = sf->pos + offset;
 
     /* if we are already at end of string..
-       if current char is not q or Q
+       if ncurrent char is not q or Q
        if we don't have 2 more chars
        if char2 != a single quote
        then, just treat as word
     */
     if (pos >= slen ||
-        (cs[pos] != 'q' && cs[pos] != 'Q') ||
-        pos + 2 >= slen ||
-        cs[pos + 1] != '\'') {
+            (cs[pos] != 'q' && cs[pos] != 'Q') ||
+            pos + 2 >= slen ||
+            cs[pos + 1] != '\'') {
         return parse_word(sf);
     }
 
@@ -775,14 +769,14 @@ static size_t parse_qstring_core(struct libinjection_sqli_state * sf, size_t off
 
     strend = memchr2(cs + pos + 3, slen - pos - 3, ch, '\'');
     if (strend == NULL) {
-        st_assign(sf->current, TYPE_STRING, pos + 3, slen - pos - 3, cs + pos + 3);
-        sf->current->str_open = 'q';
-        sf->current->str_close = CHAR_NULL;
+        st_assign(sf->ncurrent, TYPE_STRING, pos + 3, slen - pos - 3, cs + pos + 3);
+        sf->ncurrent->str_open = 'q';
+        sf->ncurrent->str_close = CHAR_NULL;
         return slen;
     } else {
-        st_assign(sf->current, TYPE_STRING, pos + 3, (size_t)(strend - cs) - pos -  3, cs + pos + 3);
-        sf->current->str_open = 'q';
-        sf->current->str_close = 'q';
+        st_assign(sf->ncurrent, TYPE_STRING, pos + 3, (size_t)(strend - cs) - pos -  3, cs + pos + 3);
+        sf->ncurrent->str_open = 'q';
+        sf->ncurrent->str_close = 'q';
         return (size_t)(strend - cs + 2);
     }
 }
@@ -832,7 +826,7 @@ static size_t parse_bstring(struct libinjection_sqli_state *sf)
     if (pos + 2 + wlen  >= slen || cs[pos + 2 + wlen] != '\'') {
         return parse_word(sf);
     }
-    st_assign(sf->current, TYPE_NUMBER, pos, wlen + 3, cs + pos);
+    st_assign(sf->ncurrent, TYPE_NUMBER, pos, wlen + 3, cs + pos);
     return pos + 2 + wlen + 1;
 }
 
@@ -861,7 +855,7 @@ static size_t parse_xstring(struct libinjection_sqli_state *sf)
     if (pos + 2 + wlen  >= slen || cs[pos + 2 + wlen] != '\'') {
         return parse_word(sf);
     }
-    st_assign(sf->current, TYPE_NUMBER, pos, wlen + 3, cs + pos);
+    st_assign(sf->ncurrent, TYPE_NUMBER, pos, wlen + 3, cs + pos);
     return pos + 2 + wlen + 1;
 }
 
@@ -876,10 +870,10 @@ static size_t parse_bword(struct libinjection_sqli_state * sf)
     size_t pos = sf->pos;
     const char* endptr = (const char*) memchr(cs + pos, ']', sf->slen - pos);
     if (endptr == NULL) {
-        st_assign(sf->current, TYPE_BAREWORD, pos, sf->slen - pos, cs + pos);
+        st_assign(sf->ncurrent, TYPE_BAREWORD, pos, sf->slen - pos, cs + pos);
         return sf->slen;
     } else {
-        st_assign(sf->current, TYPE_BAREWORD, pos, (size_t)(endptr - cs) - pos + 1, cs + pos);
+        st_assign(sf->ncurrent, TYPE_BAREWORD, pos, (size_t)(endptr - cs) - pos + 1, cs + pos);
         return (size_t)((endptr - cs) + 1);
     }
 }
@@ -894,23 +888,23 @@ static size_t parse_word(struct libinjection_sqli_state * sf)
     size_t wlen = strlencspn(cs + pos, sf->slen - pos,
                              " []{}<>:\\?=@!#~+-*/&|^%(),';\t\n\v\f\r\"\240\000");
 
-    st_assign(sf->current, TYPE_BAREWORD, pos, wlen, cs + pos);
+    st_assign(sf->ncurrent, TYPE_BAREWORD, pos, wlen, cs + pos);
 
     /* now we need to look inside what we good for "." and "`"
      * and see if what is before is a keyword or not
      */
-    for (i =0; i < sf->current->len; ++i) {
-        delim = sf->current->val[i];
+    for (i =0; i < sf->ncurrent->len; ++i) {
+        delim = sf->ncurrent->val[i];
         if (delim == '.' || delim == '`') {
-            ch = sf->lookup(sf, LOOKUP_WORD, sf->current->val, i);
+            ch = sf->lookup(sf, LOOKUP_WORD, sf->ncurrent->val, i);
             if (ch != TYPE_NONE && ch != TYPE_BAREWORD) {
                 /* needed for swig */
-                st_clear(sf->current);
+                st_clear(sf->ncurrent);
                 /*
                  * we got something like "SELECT.1"
                  * or SELECT`column`
                  */
-                st_assign(sf->current, ch, pos, i, cs + pos);
+                st_assign(sf->ncurrent, ch, pos, i, cs + pos);
                 return pos + i;
             }
         }
@@ -921,11 +915,11 @@ static size_t parse_word(struct libinjection_sqli_state * sf)
      */
     if (wlen < LIBINJECTION_SQLI_TOKEN_SIZE) {
 
-        ch = sf->lookup(sf, LOOKUP_WORD, sf->current->val, wlen);
+        ch = sf->lookup(sf, LOOKUP_WORD, sf->ncurrent->val, wlen);
         if (ch == CHAR_NULL) {
             ch = TYPE_BAREWORD;
         }
-        sf->current->type = ch;
+        sf->ncurrent->type = ch;
     }
     return pos + wlen;
 }
@@ -936,7 +930,7 @@ static size_t parse_word(struct libinjection_sqli_state * sf)
  */
 static size_t parse_tick(struct libinjection_sqli_state* sf)
 {
-    size_t pos =  parse_string_core(sf->s, sf->slen, sf->pos, sf->current, CHAR_TICK, 1);
+    size_t pos =  parse_string_core(sf->s, sf->slen, sf->pos, sf->ncurrent, CHAR_TICK, 1);
 
     /* we could check to see if start and end of
      * of string are both "`", i.e. make sure we have
@@ -947,15 +941,15 @@ static size_t parse_tick(struct libinjection_sqli_state* sf)
     /* check value of string to see if it's a keyword,
      * function, operator, etc
      */
-    char ch = sf->lookup(sf, LOOKUP_WORD, sf->current->val, sf->current->len);
+    char ch = sf->lookup(sf, LOOKUP_WORD, sf->ncurrent->val, sf->ncurrent->len);
     if (ch == TYPE_FUNCTION) {
         /* if it's a function, then convert token */
-        sf->current->type = TYPE_FUNCTION;
+        sf->ncurrent->type = TYPE_FUNCTION;
     } else {
         /* otherwise it's a 'n' type -- mysql treats
          * everything as a bare word
          */
-        sf->current->type = TYPE_BAREWORD;
+        sf->ncurrent->type = TYPE_BAREWORD;
     }
     return pos;
 }
@@ -978,9 +972,9 @@ static size_t parse_var(struct libinjection_sqli_state * sf)
      */
     if (pos < slen && cs[pos] == '@') {
         pos += 1;
-        sf->current->count = 2;
+        sf->ncurrent->count = 2;
     } else {
-        sf->current->count = 1;
+        sf->ncurrent->count = 1;
     }
 
     /*
@@ -990,24 +984,24 @@ static size_t parse_var(struct libinjection_sqli_state * sf)
         if (cs[pos] == '`') {
             sf->pos = pos;
             pos = parse_tick(sf);
-            sf->current->type = TYPE_VARIABLE;
+            sf->ncurrent->type = TYPE_VARIABLE;
             return pos;
         } else if (cs[pos] == CHAR_SINGLE || cs[pos] == CHAR_DOUBLE) {
             sf->pos = pos;
             pos = parse_string(sf);
-            sf->current->type = TYPE_VARIABLE;
+            sf->ncurrent->type = TYPE_VARIABLE;
             return pos;
         }
     }
 
 
     xlen = strlencspn(cs + pos, slen - pos,
-                     " <>:\\?=@!#~+-*/&|^%(),';\t\n\v\f\r'`\"");
+                      " <>:\\?=@!#~+-*/&|^%(),';\t\n\v\f\r'`\"");
     if (xlen == 0) {
-        st_assign(sf->current, TYPE_VARIABLE, pos, 0, cs + pos);
+        st_assign(sf->ncurrent, TYPE_VARIABLE, pos, 0, cs + pos);
         return pos;
     } else {
-        st_assign(sf->current, TYPE_VARIABLE, pos, xlen, cs + pos);
+        st_assign(sf->ncurrent, TYPE_VARIABLE, pos, xlen, cs + pos);
         return pos + xlen;
     }
 }
@@ -1022,7 +1016,7 @@ static size_t parse_money(struct libinjection_sqli_state *sf)
 
     if (pos + 1 == slen) {
         /* end of line */
-        st_assign_char(sf->current, TYPE_BAREWORD, pos, 1, '$');
+        st_assign_char(sf->ncurrent, TYPE_BAREWORD, pos, 1, '$');
         return slen;
     }
 
@@ -1038,15 +1032,15 @@ static size_t parse_money(struct libinjection_sqli_state *sf)
             strend = memchr2(cs + pos + 2, slen - pos -2, '$', '$');
             if (strend == NULL) {
                 /* fell off edge */
-                st_assign(sf->current, TYPE_STRING, pos + 2, slen - (pos + 2), cs + pos + 2);
-                sf->current->str_open = '$';
-                sf->current->str_close = CHAR_NULL;
+                st_assign(sf->ncurrent, TYPE_STRING, pos + 2, slen - (pos + 2), cs + pos + 2);
+                sf->ncurrent->str_open = '$';
+                sf->ncurrent->str_close = CHAR_NULL;
                 return slen;
             } else {
-                st_assign(sf->current, TYPE_STRING, pos + 2,
+                st_assign(sf->ncurrent, TYPE_STRING, pos + 2,
                           (size_t)(strend - (cs + pos + 2)), cs + pos + 2);
-                sf->current->str_open = '$';
-                sf->current->str_close = '$';
+                sf->ncurrent->str_open = '$';
+                sf->ncurrent->str_close = '$';
                 return (size_t)(strend - cs + 2);
             }
         } else {
@@ -1054,14 +1048,14 @@ static size_t parse_money(struct libinjection_sqli_state *sf)
             xlen = strlenspn(cs + pos + 1, slen - pos - 1, "abcdefghjiklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
             if (xlen == 0) {
                 /* hmm it's "$" _something_ .. just add $ and keep going*/
-                st_assign_char(sf->current, TYPE_BAREWORD, pos, 1, '$');
+                st_assign_char(sf->ncurrent, TYPE_BAREWORD, pos, 1, '$');
                 return pos + 1;
             }
             /* we have $foobar????? */
             /* is it $foobar$ */
             if (pos + xlen + 1 == slen || cs[pos+xlen+1] != '$') {
                 /* not $foobar$, or fell off edge */
-                st_assign_char(sf->current, TYPE_BAREWORD, pos, 1, '$');
+                st_assign_char(sf->ncurrent, TYPE_BAREWORD, pos, 1, '$');
                 return pos + 1;
             }
 
@@ -1070,16 +1064,16 @@ static size_t parse_money(struct libinjection_sqli_state *sf)
 
             if (strend == NULL || ((size_t)(strend - cs) < (pos+xlen+2))) {
                 /* fell off edge */
-                st_assign(sf->current, TYPE_STRING, pos+xlen+2, slen - pos - xlen - 2, cs+pos+xlen+2);
-                sf->current->str_open = '$';
-                sf->current->str_close = CHAR_NULL;
+                st_assign(sf->ncurrent, TYPE_STRING, pos+xlen+2, slen - pos - xlen - 2, cs+pos+xlen+2);
+                sf->ncurrent->str_open = '$';
+                sf->ncurrent->str_close = CHAR_NULL;
                 return slen;
             } else {
                 /* got one */
-                st_assign(sf->current, TYPE_STRING, pos+xlen+2,
+                st_assign(sf->ncurrent, TYPE_STRING, pos+xlen+2,
                           (size_t)(strend - (cs + pos + xlen + 2)), cs+pos+xlen+2);
-                sf->current->str_open = '$';
-                sf->current->str_close = '$';
+                sf->ncurrent->str_open = '$';
+                sf->ncurrent->str_close = '$';
                 return (size_t)((strend + xlen + 2) - cs);
             }
         }
@@ -1087,7 +1081,7 @@ static size_t parse_money(struct libinjection_sqli_state *sf)
         /* $. should parsed as a word */
         return parse_word(sf);
     } else {
-        st_assign(sf->current, TYPE_NUMBER, pos, 1 + xlen, cs + pos);
+        st_assign(sf->ncurrent, TYPE_NUMBER, pos, 1 + xlen, cs + pos);
         return pos + 1 + xlen;
     }
 }
@@ -1116,10 +1110,10 @@ static size_t parse_number(struct libinjection_sqli_state * sf)
         if (digits) {
             xlen = strlenspn(cs + pos + 2, slen - pos - 2, digits);
             if (xlen == 0) {
-                st_assign(sf->current, TYPE_BAREWORD, pos, 2, cs + pos);
+                st_assign(sf->ncurrent, TYPE_BAREWORD, pos, 2, cs + pos);
                 return pos + 2;
             } else {
-                st_assign(sf->current, TYPE_NUMBER, pos, 2 + xlen, cs + pos);
+                st_assign(sf->ncurrent, TYPE_NUMBER, pos, 2 + xlen, cs + pos);
                 return pos + 2 + xlen;
             }
         }
@@ -1137,7 +1131,7 @@ static size_t parse_number(struct libinjection_sqli_state * sf)
         }
         if (pos - start == 1) {
             /* only one character read so far */
-            st_assign_char(sf->current, TYPE_DOT, start, 1, '.');
+            st_assign_char(sf->ncurrent, TYPE_DOT, start, 1, '.');
             return pos;
         }
     }
@@ -1185,9 +1179,9 @@ static size_t parse_number(struct libinjection_sqli_state * sf)
          * "10.10E"
          * ".E"
          * this is a WORD not a number!! */
-        st_assign(sf->current, TYPE_BAREWORD, start, pos - start, cs + start);
+        st_assign(sf->ncurrent, TYPE_BAREWORD, start, pos - start, cs + start);
     } else {
-        st_assign(sf->current, TYPE_NUMBER, start, pos - start, cs + start);
+        st_assign(sf->ncurrent, TYPE_NUMBER, start, pos - start, cs + start);
     }
     return pos;
 }
@@ -1206,7 +1200,7 @@ int libinjection_sqli_tokenize(struct libinjection_sqli_state * sf)
 {
     pt2Function fnptr;
     size_t *pos = &sf->pos;
-    stoken_t *current = sf->current;
+    stoken_t *ncurrent = sf->ncurrent;
     const char *s = sf->s;
     const size_t slen = sf->slen;
 
@@ -1214,8 +1208,8 @@ int libinjection_sqli_tokenize(struct libinjection_sqli_state * sf)
         return FALSE;
     }
 
-    st_clear(current);
-    sf->current = current;
+    st_clear(ncurrent);
+    sf->ncurrent = ncurrent;
 
     /*
      * if we are at beginning of string
@@ -1223,7 +1217,7 @@ int libinjection_sqli_tokenize(struct libinjection_sqli_state * sf)
      *  then pretend the input starts with a quote
      */
     if (*pos == 0 && (sf->flags & (FLAG_QUOTE_SINGLE | FLAG_QUOTE_DOUBLE))) {
-        *pos = parse_string_core(s, slen, 0, current, flag2delim(sf->flags), 0);
+        *pos = parse_string_core(s, slen, 0, ncurrent, flag2delim(sf->flags), 0);
         sf->stats_tokens += 1;
         return TRUE;
     }
@@ -1231,7 +1225,7 @@ int libinjection_sqli_tokenize(struct libinjection_sqli_state * sf)
     while (*pos < slen) {
 
         /*
-         * get current character
+         * get ncurrent character
          */
         const unsigned char ch = (unsigned char) (s[*pos]);
 
@@ -1248,7 +1242,7 @@ int libinjection_sqli_tokenize(struct libinjection_sqli_state * sf)
         /*
          *
          */
-        if (current->type != CHAR_NULL) {
+        if (ncurrent->type != CHAR_NULL) {
             sf->stats_tokens += 1;
             return TRUE;
         }
@@ -1268,7 +1262,7 @@ void libinjection_sqli_init(struct libinjection_sqli_state * sf, const char *s, 
     sf->lookup   = libinjection_sqli_lookup_word;
     sf->userdata = 0;
     sf->flags    = flags;
-    sf->current  = &(sf->tokenvec[0]);
+    sf->ncurrent  = &(sf->tokenvec[0]);
 }
 
 void libinjection_sqli_reset(struct libinjection_sqli_state * sf, int flags)
@@ -1321,27 +1315,27 @@ static int syntax_merge_words(struct libinjection_sqli_state * sf,stoken_t * a, 
 
     /* first token is of right type? */
     if (!
-        (a->type == TYPE_KEYWORD ||
-         a->type == TYPE_BAREWORD ||
-         a->type == TYPE_OPERATOR ||
-         a->type == TYPE_UNION ||
-         a->type == TYPE_FUNCTION ||
-         a->type == TYPE_EXPRESSION ||
-         a->type == TYPE_TSQL ||
-         a->type == TYPE_SQLTYPE)) {
+            (a->type == TYPE_KEYWORD ||
+             a->type == TYPE_BAREWORD ||
+             a->type == TYPE_OPERATOR ||
+             a->type == TYPE_UNION ||
+             a->type == TYPE_FUNCTION ||
+             a->type == TYPE_EXPRESSION ||
+             a->type == TYPE_TSQL ||
+             a->type == TYPE_SQLTYPE)) {
         return FALSE;
     }
 
     if (!
-        (b->type == TYPE_KEYWORD ||
-         b->type == TYPE_BAREWORD ||
-         b->type == TYPE_OPERATOR ||
-         b->type == TYPE_UNION ||
-         b->type == TYPE_FUNCTION ||
-         b->type == TYPE_EXPRESSION ||
-         b->type == TYPE_TSQL ||
-         b->type == TYPE_SQLTYPE ||
-         b->type == TYPE_LOGIC_OPERATOR)) {
+            (b->type == TYPE_KEYWORD ||
+             b->type == TYPE_BAREWORD ||
+             b->type == TYPE_OPERATOR ||
+             b->type == TYPE_UNION ||
+             b->type == TYPE_FUNCTION ||
+             b->type == TYPE_EXPRESSION ||
+             b->type == TYPE_TSQL ||
+             b->type == TYPE_SQLTYPE ||
+             b->type == TYPE_LOGIC_OPERATOR)) {
         return FALSE;
     }
 
@@ -1352,7 +1346,7 @@ static int syntax_merge_words(struct libinjection_sqli_state * sf,stoken_t * a, 
         return FALSE;
     }
     /*
-     * oddly annoying  last.val + ' ' + current.val
+     * oddly annoying  last.val + ' ' + ncurrent.val
      */
     memcpy(tmp, a->val, sz1);
     tmp[sz1] = ' ';
@@ -1386,13 +1380,13 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
     /* Skip all initial comments, right-parens ( and unary operators
      *
      */
-    sf->current = &(sf->tokenvec[0]);
+    sf->ncurrent = &(sf->tokenvec[0]);
     while (more) {
         more = libinjection_sqli_tokenize(sf);
-        if ( ! (sf->current->type == TYPE_COMMENT ||
-                sf->current->type == TYPE_LEFTPARENS ||
-                sf->current->type == TYPE_SQLTYPE ||
-                st_is_unary_op(sf->current))) {
+        if ( ! (sf->ncurrent->type == TYPE_COMMENT ||
+                sf->ncurrent->type == TYPE_LEFTPARENS ||
+                sf->ncurrent->type == TYPE_SQLTYPE ||
+                st_is_unary_op(sf->ncurrent))) {
             break;
         }
     }
@@ -1413,38 +1407,38 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
          */
         if (pos >= LIBINJECTION_SQLI_MAX_TOKENS) {
             if (
-                (
-                    sf->tokenvec[0].type == TYPE_NUMBER &&
-                    (sf->tokenvec[1].type == TYPE_OPERATOR || sf->tokenvec[1].type == TYPE_COMMA) &&
-                    sf->tokenvec[2].type == TYPE_LEFTPARENS &&
-                    sf->tokenvec[3].type == TYPE_NUMBER &&
-                    sf->tokenvec[4].type == TYPE_RIGHTPARENS
-                    ) ||
-                (
-                    sf->tokenvec[0].type == TYPE_BAREWORD &&
-                    sf->tokenvec[1].type == TYPE_OPERATOR &&
-                    sf->tokenvec[2].type == TYPE_LEFTPARENS &&
-                    (sf->tokenvec[3].type == TYPE_BAREWORD || sf->tokenvec[3].type == TYPE_NUMBER) &&
-                    sf->tokenvec[4].type == TYPE_RIGHTPARENS
-                    ) ||
-                (
-                    sf->tokenvec[0].type == TYPE_NUMBER &&
-                    sf->tokenvec[1].type == TYPE_RIGHTPARENS &&
-                    sf->tokenvec[2].type == TYPE_COMMA &&
-                    sf->tokenvec[3].type == TYPE_LEFTPARENS &&
-                    sf->tokenvec[4].type == TYPE_NUMBER
-                    ) ||
-                (
-                    sf->tokenvec[0].type == TYPE_BAREWORD &&
-                    sf->tokenvec[1].type == TYPE_RIGHTPARENS &&
-                    sf->tokenvec[2].type == TYPE_OPERATOR &&
-                    sf->tokenvec[3].type == TYPE_LEFTPARENS &&
-                    sf->tokenvec[4].type == TYPE_BAREWORD
+                    (
+                        sf->tokenvec[0].type == TYPE_NUMBER &&
+                        (sf->tokenvec[1].type == TYPE_OPERATOR || sf->tokenvec[1].type == TYPE_COMMA) &&
+                        sf->tokenvec[2].type == TYPE_LEFTPARENS &&
+                        sf->tokenvec[3].type == TYPE_NUMBER &&
+                        sf->tokenvec[4].type == TYPE_RIGHTPARENS
+                        ) ||
+                    (
+                        sf->tokenvec[0].type == TYPE_BAREWORD &&
+                        sf->tokenvec[1].type == TYPE_OPERATOR &&
+                        sf->tokenvec[2].type == TYPE_LEFTPARENS &&
+                        (sf->tokenvec[3].type == TYPE_BAREWORD || sf->tokenvec[3].type == TYPE_NUMBER) &&
+                        sf->tokenvec[4].type == TYPE_RIGHTPARENS
+                        ) ||
+                    (
+                        sf->tokenvec[0].type == TYPE_NUMBER &&
+                        sf->tokenvec[1].type == TYPE_RIGHTPARENS &&
+                        sf->tokenvec[2].type == TYPE_COMMA &&
+                        sf->tokenvec[3].type == TYPE_LEFTPARENS &&
+                        sf->tokenvec[4].type == TYPE_NUMBER
+                        ) ||
+                    (
+                        sf->tokenvec[0].type == TYPE_BAREWORD &&
+                        sf->tokenvec[1].type == TYPE_RIGHTPARENS &&
+                        sf->tokenvec[2].type == TYPE_OPERATOR &&
+                        sf->tokenvec[3].type == TYPE_LEFTPARENS &&
+                        sf->tokenvec[4].type == TYPE_BAREWORD
+                        )
                     )
-                )
             {
                 if (pos > LIBINJECTION_SQLI_MAX_TOKENS) {
-		    st_copy(&(sf->tokenvec[1]), &(sf->tokenvec[LIBINJECTION_SQLI_MAX_TOKENS]));
+                    st_copy(&(sf->tokenvec[1]), &(sf->tokenvec[LIBINJECTION_SQLI_MAX_TOKENS]));
                     pos = 2;
                     left = 0;
                 } else {
@@ -1461,11 +1455,11 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
 
         /* get up to two tokens */
         while (more && pos <= LIBINJECTION_SQLI_MAX_TOKENS && (pos - left) < 2) {
-            sf->current = &(sf->tokenvec[pos]);
+            sf->ncurrent = &(sf->tokenvec[pos]);
             more = libinjection_sqli_tokenize(sf);
             if (more) {
-                if (sf->current->type == TYPE_COMMENT) {
-                    st_copy(&last_comment, sf->current);
+                if (sf->ncurrent->type == TYPE_COMMENT) {
+                    st_copy(&last_comment, sf->ncurrent);
                 } else {
                     last_comment.type = CHAR_NULL;
                     pos += 1;
@@ -1521,9 +1515,9 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
             continue;
         } else if (sf->tokenvec[left].type == TYPE_SEMICOLON &&
                    sf->tokenvec[left+1].type == TYPE_FUNCTION &&
-		   (sf->tokenvec[left+1].val[0] == 'I' ||
-		    sf->tokenvec[left+1].val[0] == 'i' ) &&
-		   (sf->tokenvec[left+1].val[1] == 'F' ||
+                   (sf->tokenvec[left+1].val[0] == 'I' ||
+                    sf->tokenvec[left+1].val[0] == 'i' ) &&
+                   (sf->tokenvec[left+1].val[1] == 'F' ||
                     sf->tokenvec[left+1].val[1] == 'f' )) {
             /* IF is normally a function, except in Transact-SQL where it can be used as a
              * standalone control flow operator, e.g. ; IF 1=1 ...
@@ -1657,7 +1651,7 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
              *   select { ``.id }; -- invalid
              *
              * so it appears {``.``.id} is a magic case
-             * I suspect this is "current database, current table, field id"
+             * I suspect this is "ncurrent database, ncurrent table, field id"
              *
              * The folding code can't look at more than 3 tokens, and
              * I don't want to make two passes.
@@ -1691,11 +1685,11 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
         */
         FOLD_DEBUG;
         while (more && pos <= LIBINJECTION_SQLI_MAX_TOKENS && pos - left < 3) {
-            sf->current = &(sf->tokenvec[pos]);
+            sf->ncurrent = &(sf->tokenvec[pos]);
             more = libinjection_sqli_tokenize(sf);
             if (more) {
-                if (sf->current->type == TYPE_COMMENT) {
-                    st_copy(&last_comment, sf->current);
+                if (sf->ncurrent->type == TYPE_COMMENT) {
+                    st_copy(&last_comment, sf->ncurrent);
                 } else {
                     last_comment.type = CHAR_NULL;
                     pos += 1;
@@ -1713,8 +1707,8 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
          * now look for three token folding
          */
         if (sf->tokenvec[left].type == TYPE_NUMBER &&
-            sf->tokenvec[left+1].type == TYPE_OPERATOR &&
-            sf->tokenvec[left+2].type == TYPE_NUMBER) {
+                sf->tokenvec[left+1].type == TYPE_OPERATOR &&
+                sf->tokenvec[left+2].type == TYPE_NUMBER) {
             pos -= 2;
             left = 0;
             continue;
@@ -1853,7 +1847,7 @@ int libinjection_sqli_fold(struct libinjection_sqli_state * sf)
              * Some SQL functions like USER() have 0 args
              * if we get User(foo), then User is not a function
              * This should be expanded since it eliminated a lot of false
-             * positives. 
+             * positives.
              */
             if  (cstrcasecmp("USER", sf->tokenvec[left].val, sf->tokenvec[left].len) == 0) {
                 sf->tokenvec[left].type = TYPE_BAREWORD;
@@ -1916,10 +1910,10 @@ const char* libinjection_sqli_fingerprint(struct libinjection_sqli_state * sql_s
      * Then convert it to comment
      */
     if (tlen > 2 &&
-        sql_state->tokenvec[tlen-1].type == TYPE_BAREWORD &&
-        sql_state->tokenvec[tlen-1].str_open == CHAR_TICK &&
-        sql_state->tokenvec[tlen-1].len == 0 &&
-        sql_state->tokenvec[tlen-1].str_close == CHAR_NULL) {
+            sql_state->tokenvec[tlen-1].type == TYPE_BAREWORD &&
+            sql_state->tokenvec[tlen-1].str_open == CHAR_TICK &&
+            sql_state->tokenvec[tlen-1].len == 0 &&
+            sql_state->tokenvec[tlen-1].str_close == CHAR_NULL) {
         sql_state->tokenvec[tlen-1].type = TYPE_COMMENT;
     }
 
@@ -1960,7 +1954,7 @@ const char* libinjection_sqli_fingerprint(struct libinjection_sqli_state * sql_s
 int libinjection_sqli_check_fingerprint(struct libinjection_sqli_state* sql_state)
 {
     return libinjection_sqli_blacklist(sql_state) &&
-        libinjection_sqli_not_whitelist(sql_state);
+            libinjection_sqli_not_whitelist(sql_state);
 }
 
 char libinjection_sqli_lookup_word(struct libinjection_sqli_state *sql_state, int lookup_type,
@@ -2012,7 +2006,7 @@ int libinjection_sqli_blacklist(struct libinjection_sqli_state* sql_state)
     /*
      * No match.
      *
-     * Set sql_state->reason to current line number
+     * Set sql_state->reason to ncurrent line number
      * only for debugging purposes.
      */
     if (!patmatch) {
@@ -2088,18 +2082,18 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
          * as SQL... ending comments of "--" and "#" are not SQLi
          */
         if (sql_state->tokenvec[0].type == TYPE_BAREWORD &&
-            sql_state->tokenvec[1].type == TYPE_COMMENT &&
-            sql_state->tokenvec[1].val[0] != '/') {
-                sql_state->reason = __LINE__;
-                return FALSE;
+                sql_state->tokenvec[1].type == TYPE_COMMENT &&
+                sql_state->tokenvec[1].val[0] != '/') {
+            sql_state->reason = __LINE__;
+            return FALSE;
         }
 
         /*
          * if '1c' ends with '/x' then it's SQLi
          */
         if (sql_state->tokenvec[0].type == TYPE_NUMBER &&
-            sql_state->tokenvec[1].type == TYPE_COMMENT &&
-            sql_state->tokenvec[1].val[0] == '/') {
+                sql_state->tokenvec[1].type == TYPE_COMMENT &&
+                sql_state->tokenvec[1].val[0] == '/') {
             return TRUE;
         }
 
@@ -2116,7 +2110,7 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
          * Note: evasion: 1*1--
          */
         if (sql_state->tokenvec[0].type == TYPE_NUMBER &&
-            sql_state->tokenvec[1].type == TYPE_COMMENT) {
+                sql_state->tokenvec[1].type == TYPE_COMMENT) {
             if (sql_state->stats_tokens > 2) {
                 /* we have some folding going on, highly likely SQLi */
                 sql_state->reason = __LINE__;
@@ -2150,7 +2144,7 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
          * so only detect if input ends with '--', e.g. 1-- but not 1-- foo
          */
         if ((sql_state->tokenvec[1].len > 2)
-            && sql_state->tokenvec[1].val[0] == '-') {
+                && sql_state->tokenvec[1].val[0] == '-') {
             sql_state->reason = __LINE__;
             return FALSE;
         }
@@ -2165,27 +2159,27 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
          */
 
         if (streq(sql_state->fingerprint, "sos")
-            || streq(sql_state->fingerprint, "s&s")) {
+                || streq(sql_state->fingerprint, "s&s")) {
 
-                if ((sql_state->tokenvec[0].str_open == CHAR_NULL)
+            if ((sql_state->tokenvec[0].str_open == CHAR_NULL)
                     && (sql_state->tokenvec[2].str_close == CHAR_NULL)
                     && (sql_state->tokenvec[0].str_close == sql_state->tokenvec[2].str_open)) {
-                    /*
+                /*
                      * if ....foo" + "bar....
                      */
-                    sql_state->reason = __LINE__;
-                    return TRUE;
-                }
-                if (sql_state->stats_tokens == 3) {
-                    sql_state->reason = __LINE__;
-                    return FALSE;
-                }
-
-                /*
-                 * not SQLi
-                 */
+                sql_state->reason = __LINE__;
+                return TRUE;
+            }
+            if (sql_state->stats_tokens == 3) {
                 sql_state->reason = __LINE__;
                 return FALSE;
+            }
+
+            /*
+                 * not SQLi
+                 */
+            sql_state->reason = __LINE__;
+            return FALSE;
         } else if (streq(sql_state->fingerprint, "s&n") ||
                    streq(sql_state->fingerprint, "n&1") ||
                    streq(sql_state->fingerprint, "1&1") ||
@@ -2200,7 +2194,7 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
             }
         } else if (sql_state->tokenvec[1].type == TYPE_KEYWORD) {
             if ((sql_state->tokenvec[1].len < 5) ||
-                cstrcasecmp("INTO", sql_state->tokenvec[1].val, 4)) {
+                    cstrcasecmp("INTO", sql_state->tokenvec[1].val, 4)) {
                 /* if it's not "INTO OUTFILE", or "INTO DUMPFILE" (MySQL)
                  * then treat as safe
                  */
@@ -2227,14 +2221,14 @@ int libinjection_sqli_not_whitelist(struct libinjection_sqli_state* sql_state)
 static int reparse_as_mysql(struct libinjection_sqli_state * sql_state)
 {
     return sql_state->stats_comment_ddx ||
-        sql_state->stats_comment_hash;
+            sql_state->stats_comment_hash;
 }
 
 /*
  * This function is mostly use with SWIG
  */
 struct libinjection_sqli_token*
-libinjection_sqli_get_token(struct libinjection_sqli_state * sql_state, int i)
+        libinjection_sqli_get_token(struct libinjection_sqli_state * sql_state, int i)
 {
     if (i < 0 || i > (int)LIBINJECTION_SQLI_MAX_TOKENS) {
         return NULL;

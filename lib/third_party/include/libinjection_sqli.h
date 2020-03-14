@@ -17,7 +17,11 @@ extern "C" {
 /*
  * Pull in size_t
  */
+#ifdef __KERNEL__
+#include <linux/string.h>
+#else
 #include <string.h>
+#endif
 
 enum sqli_flags {
     FLAG_NONE            = 0
@@ -38,7 +42,7 @@ enum lookup_type {
 
 struct libinjection_sqli_token {
 #ifdef SWIG
-%immutable;
+    %immutable;
 #endif
     /*
      * position and length of token
@@ -70,7 +74,7 @@ typedef char (*ptr_lookup_fn)(struct libinjection_sqli_state*, int lookuptype, c
 
 struct libinjection_sqli_state {
 #ifdef SWIG
-%immutable;
+    %immutable;
 #endif
 
     /*
@@ -112,7 +116,7 @@ struct libinjection_sqli_state {
     /*
      * Pointer to token position in tokenvec, above
      */
-    struct libinjection_sqli_token *current;
+    struct libinjection_sqli_token *ncurrent;
 
     /*
      * fingerprint pattern c-string
@@ -136,7 +140,7 @@ struct libinjection_sqli_state {
      *
      * All databases treat this as a comment.
      */
-     int stats_comment_ddw;
+    int stats_comment_ddw;
 
     /* Number of ddx (dash-dash-[notwhite]) comments
      *
@@ -175,7 +179,7 @@ struct libinjection_sqli_state {
 typedef struct libinjection_sqli_state sfilter;
 
 struct libinjection_sqli_token* libinjection_sqli_get_token(
-    struct libinjection_sqli_state* sqlistate, int i);
+        struct libinjection_sqli_state* sqlistate, int i);
 
 /*
  * Version info.
@@ -250,7 +254,7 @@ char libinjection_sqli_lookup_word(struct libinjection_sqli_state* sql_state,
 
 /* Streaming tokenization interface.
  *
- * sql_state->current is updated with the current token.
+ * sql_state->ncurrent is updated with the current token.
  *
  * \returns 1, has a token, keep going, or 0 no tokens
  *

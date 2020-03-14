@@ -31,118 +31,118 @@
 
 static void ndpi_int_socks_add_connection(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SOCKS, NDPI_PROTOCOL_UNKNOWN);
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SOCKS, NDPI_PROTOCOL_UNKNOWN);
 }
 
 static void ndpi_check_socks4(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  u_int32_t payload_len = packet->payload_packet_len;
+    struct ndpi_packet_struct *packet = &flow->packet;
+    u_int32_t payload_len = packet->payload_packet_len;
 
-  /* Break after 20 packets. */
-  if(flow->packet_counter > 20) {
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-    return;
-  }
-
-  /* Check if we so far detected the protocol in the request or not. */
-  if(flow->socks4_stage == 0) {
-    NDPI_LOG_DBG2(ndpi_struct, "SOCKS4 stage 0: \n");
-    
-    if(payload_len >= 9 && packet->payload[0] == 0x04 && 
-      (packet->payload[1] == 0x01 || packet->payload[1] == 0x02) &&
-      packet->payload[payload_len - 1] == 0x00)  {
-      NDPI_LOG_DBG2(ndpi_struct, "Possible SOCKS4 request detected, we will look further for the response\n");
-      /* TODO: check port and ip address is valid */
-      /* Encode the direction of the packet in the stage, so we will know when we need to look for the response packet. */
-      flow->socks4_stage = packet->packet_direction + 1;
+    /* Break after 20 packets. */
+    if(flow->packet_counter > 20) {
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        return;
     }
-  } else {
-    NDPI_LOG_DBG2(ndpi_struct, "SOCKS4 stage %u: \n", flow->socks4_stage);
 
-    /* At first check, if this is for sure a response packet (in another direction. If not, do nothing now and return. */
-    if((flow->socks4_stage - packet->packet_direction) == 1) {
-      return;
-    }
-    /* This is a packet in another direction. Check if we find the proper response. */
-    if(payload_len == 8 && packet->payload[0] == 0x00 && packet->payload[1] >= 0x5a && packet->payload[1] <= 0x5d) {
-      NDPI_LOG_INFO(ndpi_struct, "found SOCKS4\n");
-      ndpi_int_socks_add_connection(ndpi_struct, flow);
+    /* Check if we so far detected the protocol in the request or not. */
+    if(flow->socks4_stage == 0) {
+        NDPI_LOG_DBG2(ndpi_struct, "SOCKS4 stage 0: \n");
+
+        if(payload_len >= 9 && packet->payload[0] == 0x04 &&
+                (packet->payload[1] == 0x01 || packet->payload[1] == 0x02) &&
+                packet->payload[payload_len - 1] == 0x00)  {
+            NDPI_LOG_DBG2(ndpi_struct, "Possible SOCKS4 request detected, we will look further for the response\n");
+            /* TODO: check port and ip address is valid */
+            /* Encode the direction of the packet in the stage, so we will know when we need to look for the response packet. */
+            flow->socks4_stage = packet->packet_direction + 1;
+        }
     } else {
-      NDPI_LOG_DBG2(ndpi_struct, "The reply did not seem to belong to SOCKS4, resetting the stage to 0\n");
-      flow->socks4_stage = 0;
+        NDPI_LOG_DBG2(ndpi_struct, "SOCKS4 stage %u: \n", flow->socks4_stage);
+
+        /* At first check, if this is for sure a response packet (in another direction. If not, do nothing now and return. */
+        if((flow->socks4_stage - packet->packet_direction) == 1) {
+            return;
+        }
+        /* This is a packet in another direction. Check if we find the proper response. */
+        if(payload_len == 8 && packet->payload[0] == 0x00 && packet->payload[1] >= 0x5a && packet->payload[1] <= 0x5d) {
+            NDPI_LOG_INFO(ndpi_struct, "found SOCKS4\n");
+            ndpi_int_socks_add_connection(ndpi_struct, flow);
+        } else {
+            NDPI_LOG_DBG2(ndpi_struct, "The reply did not seem to belong to SOCKS4, resetting the stage to 0\n");
+            flow->socks4_stage = 0;
+        }
     }
-  }
 }
 
 static void ndpi_check_socks5(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  u_int32_t payload_len = packet->payload_packet_len;
+    struct ndpi_packet_struct *packet = &flow->packet;
+    u_int32_t payload_len = packet->payload_packet_len;
 
-  /* Break after 20 packets. */
-  if(flow->packet_counter > 20) {
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-    return;
-  }
-
-  /* Check if we so far detected the protocol in the request or not. */
-  if(flow->socks5_stage == 0) {
-    NDPI_LOG_DBG2(ndpi_struct, "SOCKS5 stage 0: \n");
-
-    if((payload_len == 3) && (packet->payload[0] == 0x05) && (packet->payload[1] == 0x01) && (packet->payload[2] == 0x00)) {
-      NDPI_LOG_DBG2(ndpi_struct, "Possible SOCKS5 request detected, we will look further for the response\n");
-
-      /* Encode the direction of the packet in the stage, so we will know when we need to look for the response packet. */
-      flow->socks5_stage = packet->packet_direction + 1;
+    /* Break after 20 packets. */
+    if(flow->packet_counter > 20) {
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        return;
     }
 
-  } else {
-    NDPI_LOG_DBG2(ndpi_struct, "SOCKS5 stage %u: \n", flow->socks5_stage);
+    /* Check if we so far detected the protocol in the request or not. */
+    if(flow->socks5_stage == 0) {
+        NDPI_LOG_DBG2(ndpi_struct, "SOCKS5 stage 0: \n");
 
-    /* At first check, if this is for sure a response packet (in another direction. If not, do nothing now and return. */
-    if((flow->socks5_stage - packet->packet_direction) == 1) {
-      return;
-    }
+        if((payload_len == 3) && (packet->payload[0] == 0x05) && (packet->payload[1] == 0x01) && (packet->payload[2] == 0x00)) {
+            NDPI_LOG_DBG2(ndpi_struct, "Possible SOCKS5 request detected, we will look further for the response\n");
 
-    /* This is a packet in another direction. Check if we find the proper response. */
-    if((payload_len == 0) || ((payload_len == 2) && (packet->payload[0] == 0x05) && (packet->payload[1] == 0x00))) {
-      NDPI_LOG_INFO(ndpi_struct, "found SOCKS5\n");
-      ndpi_int_socks_add_connection(ndpi_struct, flow);
+            /* Encode the direction of the packet in the stage, so we will know when we need to look for the response packet. */
+            flow->socks5_stage = packet->packet_direction + 1;
+        }
+
     } else {
-      NDPI_LOG_DBG2(ndpi_struct, "The reply did not seem to belong to SOCKS5, resetting the stage to 0\n");
-      flow->socks5_stage = 0;
-    }
+        NDPI_LOG_DBG2(ndpi_struct, "SOCKS5 stage %u: \n", flow->socks5_stage);
 
-  }
+        /* At first check, if this is for sure a response packet (in another direction. If not, do nothing now and return. */
+        if((flow->socks5_stage - packet->packet_direction) == 1) {
+            return;
+        }
+
+        /* This is a packet in another direction. Check if we find the proper response. */
+        if((payload_len == 0) || ((payload_len == 2) && (packet->payload[0] == 0x05) && (packet->payload[1] == 0x00))) {
+            NDPI_LOG_INFO(ndpi_struct, "found SOCKS5\n");
+            ndpi_int_socks_add_connection(ndpi_struct, flow);
+        } else {
+            NDPI_LOG_DBG2(ndpi_struct, "The reply did not seem to belong to SOCKS5, resetting the stage to 0\n");
+            flow->socks5_stage = 0;
+        }
+
+    }
 }
 
 void ndpi_search_socks(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search SOCKS\n");
+    NDPI_LOG_DBG(ndpi_struct, "search SOCKS\n");
 
-  /* skip marked packets */
-  if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SOCKS) {
-    if(packet->tcp_retransmission == 0) {
-      ndpi_check_socks4(ndpi_struct, flow);
+    /* skip marked packets */
+    if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SOCKS) {
+        if(packet->tcp_retransmission == 0) {
+            ndpi_check_socks4(ndpi_struct, flow);
 
-      if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SOCKS)
-	ndpi_check_socks5(ndpi_struct, flow);
+            if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SOCKS)
+                ndpi_check_socks5(ndpi_struct, flow);
+        }
     }
-  }
 }
 
 void init_socks_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("SOCKS", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_SOCKS,
-				      ndpi_search_socks,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK); 
+    ndpi_set_bitmask_protocol_detection("SOCKS", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_SOCKS,
+                                        ndpi_search_socks,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_WITH_PAYLOAD_WITHOUT_RETRANSMISSION,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }
 

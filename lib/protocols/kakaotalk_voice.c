@@ -32,47 +32,47 @@
 
 
 void ndpi_search_kakaotalk_voice(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  
-  NDPI_LOG_DBG(ndpi_struct, "search kakaotalk_voice\n");
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  if(packet->iph
-     && packet->udp
-     && (packet->payload_packet_len >= 4)
-     ) {
-    if((packet->payload[0] == 0x81)
-       || (packet->payload[1] == 0xC8)
-       || (packet->payload[2] == 0x00)
-       || (packet->payload[3] == 0x0C)) {
-      /* Looks good so far */
+    NDPI_LOG_DBG(ndpi_struct, "search kakaotalk_voice\n");
 
-      /*
-	inetnum:        1.201.0.0 - 1.201.255.255
-	netname:        KINXINC-KR
+    if(packet->iph
+            && packet->udp
+            && (packet->payload_packet_len >= 4)
+            ) {
+        if((packet->payload[0] == 0x81)
+                || (packet->payload[1] == 0xC8)
+                || (packet->payload[2] == 0x00)
+                || (packet->payload[3] == 0x0C)) {
+            /* Looks good so far */
+
+            /*
+    inetnum:        1.201.0.0 - 1.201.255.255
+    netname:        KINXINC-KR
       */
 
-      if(((ntohl(packet->iph->saddr) & 0xFFFF0000 /* 255.255.0.0 */) == 0x01C90000 /* 1.201.0.0/16 */)
-	 || ((ntohl(packet->iph->daddr) & 0xFFFF0000 /* 255.255.0.0 */) == 0x01C90000 /* 1.201.0.0/16 */)) {
-	NDPI_LOG_INFO(ndpi_struct, "found kakaotalk_voice\n");
-	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_KAKAOTALK_VOICE, NDPI_PROTOCOL_UNKNOWN);
-	return;
-      }
-    } 
-  }
-  
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+            if(((ntohl(packet->iph->saddr) & 0xFFFF0000 /* 255.255.0.0 */) == 0x01C90000 /* 1.201.0.0/16 */)
+                    || ((ntohl(packet->iph->daddr) & 0xFFFF0000 /* 255.255.0.0 */) == 0x01C90000 /* 1.201.0.0/16 */)) {
+                NDPI_LOG_INFO(ndpi_struct, "found kakaotalk_voice\n");
+                ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_KAKAOTALK_VOICE, NDPI_PROTOCOL_UNKNOWN);
+                return;
+            }
+        }
+    }
+
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 }
 
 
 void init_kakaotalk_voice_dissector(struct ndpi_detection_module_struct *ndpi_struct,
-				    u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
+                                    u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("KakaoTalk_Voice", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_KAKAOTALK_VOICE,
-				      ndpi_search_kakaotalk_voice,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
-  *id += 1;
+    ndpi_set_bitmask_protocol_detection("KakaoTalk_Voice", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_KAKAOTALK_VOICE,
+                                        ndpi_search_kakaotalk_voice,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
+    *id += 1;
 }
 

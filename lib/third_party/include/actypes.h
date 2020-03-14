@@ -43,8 +43,8 @@ typedef char AC_ALPHABET_t;
  * union for this purpose. you can add your desired type in it.
  **/
 typedef struct {
-  int number;
-  unsigned int category, breed;
+    int number;
+    unsigned int category, breed;
 } AC_REP_t;
 
 /* AC_PATTERN_t:
@@ -61,10 +61,10 @@ typedef struct {
  **/
 typedef struct
 {
-  AC_ALPHABET_t * astring; /* String of alphabets */
-  unsigned int length; /* Length of pattern */
-  u_int8_t is_existing; /* 1 if the node is already part of another AC_PATTERN_t */
-  AC_REP_t rep; /* Representative string (optional) */
+    AC_ALPHABET_t * astring; /* String of alphabets */
+    unsigned int length; /* Length of pattern */
+    u_int8_t is_existing; /* 1 if the node is already part of another AC_PATTERN_t */
+    AC_REP_t rep; /* Representative string (optional) */
 } AC_PATTERN_t;
 
 /* AC_TEXT_t:
@@ -74,8 +74,8 @@ typedef struct
  **/
 typedef struct
 {
-  AC_ALPHABET_t * astring; /* String of alphabets */
-  unsigned int length; /* Length of string */
+    AC_ALPHABET_t * astring; /* String of alphabets */
+    unsigned int length; /* Length of string */
 } AC_TEXT_t;
 
 /* AC_MATCH_t:
@@ -94,9 +94,9 @@ typedef struct
  **/
 typedef struct
 {
-  AC_PATTERN_t * patterns; /* Array of matched pattern */
-  long position; /* The end position of matching pattern(s) in the text */
-  unsigned int match_num; /* Number of matched patterns */
+    AC_PATTERN_t * patterns; /* Array of matched pattern */
+    long position; /* The end position of matching pattern(s) in the text */
+    unsigned int match_num; /* Number of matched patterns */
 } AC_MATCH_t;
 
 /* AC_ERROR_t:
@@ -104,14 +104,14 @@ typedef struct
  * it is returned by ac_automata_add().
  **/
 typedef enum
-  {
+{
     ACERR_SUCCESS = 0, /* No error occurred */
     ACERR_DUPLICATE_PATTERN, /* Duplicate patterns */
     ACERR_LONG_PATTERN, /* Pattern length is longer than AC_PATTRN_MAX_LENGTH */
     ACERR_ZERO_PATTERN, /* Empty pattern (zero length) */
     ACERR_AUTOMATA_CLOSED, /* Automata is closed. after calling
-			      ac_automata_finalize() you can not add new patterns to the automata. */
-  } AC_ERROR_t;
+                  ac_automata_finalize() you can not add new patterns to the automata. */
+} AC_ERROR_t;
 
 /* MATCH_CALLBACK_t:
  * This is the call-back function type that must be given to automata at

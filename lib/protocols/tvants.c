@@ -19,7 +19,7 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with nDPI.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  */
 
 #include "ndpi_protocol_ids.h"
@@ -29,57 +29,54 @@
 #include "ndpi_api.h"
 
 static void ndpi_int_tvants_add_connection(struct ndpi_detection_module_struct
-					   *ndpi_struct, struct ndpi_flow_struct *flow)
+                                           *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_TVANTS, NDPI_PROTOCOL_UNKNOWN);
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_TVANTS, NDPI_PROTOCOL_UNKNOWN);
 }
 
-
-
-
 void ndpi_search_tvants_udp(struct ndpi_detection_module_struct
-			    *ndpi_struct, struct ndpi_flow_struct *flow)
+                            *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search tvants.  \n");
+    NDPI_LOG_DBG(ndpi_struct, "search tvants.  \n");
 
-  if (packet->udp != NULL && packet->payload_packet_len > 57
-      && packet->payload[0] == 0x04 && packet->payload[1] == 0x00
-      && (packet->payload[2] == 0x05 || packet->payload[2] == 0x06
-	  || packet->payload[2] == 0x07) && packet->payload[3] == 0x00
-      && packet->payload_packet_len == (packet->payload[5] << 8) + packet->payload[4]
-      && packet->payload[6] == 0x00 && packet->payload[7] == 0x00
-      && (memcmp(&packet->payload[48], "TVANTS", 6) == 0
-	  || memcmp(&packet->payload[49], "TVANTS", 6) == 0 || memcmp(&packet->payload[51], "TVANTS", 6) == 0)) {
+    if (packet->udp != NULL && packet->payload_packet_len > 57
+            && packet->payload[0] == 0x04 && packet->payload[1] == 0x00
+            && (packet->payload[2] == 0x05 || packet->payload[2] == 0x06
+                || packet->payload[2] == 0x07) && packet->payload[3] == 0x00
+            && packet->payload_packet_len == (packet->payload[5] << 8) + packet->payload[4]
+            && packet->payload[6] == 0x00 && packet->payload[7] == 0x00
+            && (memcmp(&packet->payload[48], "TVANTS", 6) == 0
+                || memcmp(&packet->payload[49], "TVANTS", 6) == 0 || memcmp(&packet->payload[51], "TVANTS", 6) == 0)) {
 
-    NDPI_LOG_INFO(ndpi_struct, "found tvants over udp.  \n");
-    ndpi_int_tvants_add_connection(ndpi_struct, flow);
+        NDPI_LOG_INFO(ndpi_struct, "found tvants over udp.  \n");
+        ndpi_int_tvants_add_connection(ndpi_struct, flow);
 
-  } else if (packet->tcp != NULL && packet->payload_packet_len > 15
-	     && packet->payload[0] == 0x04 && packet->payload[1] == 0x00
-	     && packet->payload[2] == 0x07 && packet->payload[3] == 0x00
-	     && packet->payload_packet_len == (packet->payload[5] << 8) + packet->payload[4]
-	     && packet->payload[6] == 0x00 && packet->payload[7] == 0x00
-	     && memcmp(&packet->payload[8], "TVANTS", 6) == 0) {
+    } else if (packet->tcp != NULL && packet->payload_packet_len > 15
+               && packet->payload[0] == 0x04 && packet->payload[1] == 0x00
+               && packet->payload[2] == 0x07 && packet->payload[3] == 0x00
+               && packet->payload_packet_len == (packet->payload[5] << 8) + packet->payload[4]
+               && packet->payload[6] == 0x00 && packet->payload[7] == 0x00
+               && memcmp(&packet->payload[8], "TVANTS", 6) == 0) {
 
-    NDPI_LOG_INFO(ndpi_struct, "found tvants over tcp.  \n");
-    ndpi_int_tvants_add_connection(ndpi_struct, flow);
+        NDPI_LOG_INFO(ndpi_struct, "found tvants over tcp.  \n");
+        ndpi_int_tvants_add_connection(ndpi_struct, flow);
 
-  }
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+    }
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 
 }
 
 
 void init_tvants_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("Tvants", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_TVANTS,
-				      ndpi_search_tvants_udp,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
+    ndpi_set_bitmask_protocol_detection("Tvants", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_TVANTS,
+                                        ndpi_search_tvants_udp,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }

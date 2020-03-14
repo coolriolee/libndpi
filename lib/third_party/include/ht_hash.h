@@ -6,16 +6,16 @@
 #include "ndpi_api.h"
 
 struct entry_s {
-  char *key;
-  u_int16_t value;
-  struct entry_s *next;
+    char *key;
+    u_int16_t value;
+    struct entry_s *next;
 };
 
 typedef struct entry_s entry_t;
 
 struct hashtable_s {
-  int size;
-  struct entry_s **table;
+    int size;
+    struct entry_s **table;
 };
 
 typedef struct hashtable_s hashtable_t;

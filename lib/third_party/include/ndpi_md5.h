@@ -6,9 +6,9 @@
 /* **************************************** */
 
 typedef struct ndpi_MD5Context {
-  uint32_t buf[4];
-  uint32_t bits[2];
-  unsigned char in[64];
+    uint32_t buf[4];
+    uint32_t bits[2];
+    unsigned char in[64];
 } ndpi_MD5_CTX;
 
 /* **************************************** */

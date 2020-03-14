@@ -23,11 +23,11 @@ enum html5_type {
 };
 
 enum html5_flags {
-  DATA_STATE
-  , VALUE_NO_QUOTE
-  , VALUE_SINGLE_QUOTE
-  , VALUE_DOUBLE_QUOTE
-  , VALUE_BACK_QUOTE
+    DATA_STATE
+    , VALUE_NO_QUOTE
+    , VALUE_SINGLE_QUOTE
+    , VALUE_DOUBLE_QUOTE
+    , VALUE_BACK_QUOTE
 };
 
 struct h5_state;

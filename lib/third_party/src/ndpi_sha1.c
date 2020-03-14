@@ -21,17 +21,15 @@ A million repetitions of "a"
 
 #define SHA1HANDSOFF
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>	/* for u_int*_t */
 #if defined(__sun)
 #include "solarisfixes.h"
 #endif
 #include "ndpi_main.h"
 #include "ndpi_sha1.h"
 
+#ifndef __KERNEL__
 #ifdef WIN32
-#define BYTE_ORDER LITTLE_ENDIAN 
+#define BYTE_ORDER  LITTLE_ENDIAN
 #endif
 
 #ifndef BYTE_ORDER
@@ -48,7 +46,7 @@ A million repetitions of "a"
 #if defined(vax) || defined(ns32000) || defined(sun386) || defined(__i386__) || \
     defined(MIPSEL) || defined(_MIPSEL) || defined(BIT_ZERO_ON_RIGHT) || \
     defined(__alpha__) || defined(__alpha)
-#define BYTE_ORDER	LITTLE_ENDIAN
+#define BYTE_ORDER  LITTLE_ENDIAN
 #endif
 
 #if defined(sel) || defined(pyr) || defined(mc68000) || defined(sparc) || \
@@ -58,11 +56,21 @@ A million repetitions of "a"
     defined(__hppa) || defined(__hp9000) || \
     defined(__hp9000s300) || defined(__hp9000s700) || \
     defined (BIT_ZERO_ON_LEFT) || defined(m68k) || defined(__sparc)
-#define BYTE_ORDER	BIG_ENDIAN
+#define BYTE_ORDER  BIG_ENDIAN
 #endif
 #endif /* linux */
 #endif /* BSD */
 #endif /* BYTE_ORDER */
+#else
+#define LITTLE_ENDIAN   1234	/* least-significant byte first (vax, pc) */
+#define BIG_ENDIAN      4321	/* most-significant byte first (IBM, net) */
+#define PDP_ENDIAN      3412	/* LSB first in word, MSW first in long (pdp)*/
+#if (__BYTE_ORDER == __NLITTLE_ENDIAN__)
+#define BYTE_ORDER LITTLE_ENDIAN
+#else
+#define BYTE_ORDER BIG_ENDIAN
+#endif
+#endif /* __KERNEL__ */
 
 #if defined(__BYTE_ORDER) && !defined(BYTE_ORDER)
 #if (__BYTE_ORDER == __LITTLE_ENDIAN)
@@ -75,12 +83,12 @@ A million repetitions of "a"
 #if !defined(BYTE_ORDER) || \
     (BYTE_ORDER != BIG_ENDIAN && BYTE_ORDER != LITTLE_ENDIAN && \
     BYTE_ORDER != PDP_ENDIAN)
-	/* you must determine what the correct bit order is for
-	 * your compiler - the next line is an intentional error
-	 * which will force your compiles to bomb until you fix
-	 * the above macros.
-	 */
-#error "Undefined or invalid BYTE_ORDER"
+/* you must determine what the correct bit order is for
+     * your compiler - the next line is an intentional error
+     * which will force your compiles to bomb until you fix
+     * the above macros.
+     */
+#error "Byte order must be defined."
 #endif
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
@@ -112,13 +120,13 @@ A million repetitions of "a"
 
 void SHA1Transform(u_int32_t state[5], const unsigned char buffer[64])
 {
-u_int32_t a, b, c, d, e;
-typedef union {
-    unsigned char c[64];
-    u_int32_t l[16];
-} CHAR64LONG16;
+    u_int32_t a, b, c, d, e;
+    typedef union {
+        unsigned char c[64];
+        u_int32_t l[16];
+    } CHAR64LONG16;
 #ifdef SHA1HANDSOFF
-CHAR64LONG16 block[1];  /* use array to appear as a pointer */
+    CHAR64LONG16 block[1];  /* use array to appear as a pointer */
     memcpy(block, buffer, 64);
 #else
     /* The following had better never be used because it causes the
@@ -126,7 +134,7 @@ CHAR64LONG16 block[1];  /* use array to appear as a pointer */
      * And the result is written through.  I threw a "const" in, hoping
      * this will cause a diagnostic.
      */
-CHAR64LONG16* block = (const CHAR64LONG16*)buffer;
+    CHAR64LONG16* block = (const CHAR64LONG16*)buffer;
 #endif
     /* Copy context->state[] to working vars */
     a = state[0];
@@ -187,12 +195,12 @@ void SHA1Init(SHA1_CTX* context)
 
 void SHA1Update(SHA1_CTX* context, const unsigned char* data, u_int32_t len)
 {
-u_int32_t i;
-u_int32_t j;
+    u_int32_t i;
+    u_int32_t j;
 
     j = context->count[0];
     if ((context->count[0] += len << 3) < j)
-	context->count[1]++;
+        context->count[1]++;
     context->count[1] += (len>>29);
     j = (j >> 3) & 63;
     if ((j + len) > 63) {
@@ -212,9 +220,9 @@ u_int32_t j;
 
 void SHA1Final(unsigned char digest[20], SHA1_CTX* context)
 {
-unsigned i;
-unsigned char finalcount[8];
-unsigned char c;
+    unsigned i;
+    unsigned char finalcount[8];
+    unsigned char c;
 
 #if 0	/* untested "improvement" by DHR */
     /* Convert context->count to a sequence of bytes
@@ -226,28 +234,28 @@ unsigned char c;
 
     for (i = 0; i < 2; i++)
     {
-	u_int32_t t = context->count[i];
-	int j;
+        u_int32_t t = context->count[i];
+        int j;
 
-	for (j = 0; j < 4; t >>= 8, j++)
-	    *--fcp = (unsigned char) t
+        for (j = 0; j < 4; t >>= 8, j++)
+            *--fcp = (unsigned char) t
     }
 #else
     for (i = 0; i < 8; i++) {
         finalcount[i] = (unsigned char)((context->count[(i >= 4 ? 0 : 1)]
-         >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
+                                        >> ((3-(i & 3)) * 8) ) & 255);  /* Endian independent */
     }
 #endif
     c = 0200;
     SHA1Update(context, &c, 1);
     while ((context->count[0] & 504) != 448) {
-	c = 0000;
+        c = 0000;
         SHA1Update(context, &c, 1);
     }
     SHA1Update(context, finalcount, 8);  /* Should cause a SHA1Transform() */
     for (i = 0; i < 20; i++) {
         digest[i] = (unsigned char)
-         ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
+                ((context->state[i>>2] >> ((3-(i & 3)) * 8) ) & 255);
     }
     /* Wipe variables */
     memset(context, '\0', sizeof(*context));

@@ -29,25 +29,25 @@
 
 
 ndpi_port_range* ndpi_build_default_ports_range(ndpi_port_range *ports,
-						u_int16_t portA_low, u_int16_t portA_high,
-						u_int16_t portB_low, u_int16_t portB_high,
-						u_int16_t portC_low, u_int16_t portC_high,
-						u_int16_t portD_low, u_int16_t portD_high,
-						u_int16_t portE_low, u_int16_t portE_high);
+                                                u_int16_t portA_low, u_int16_t portA_high,
+                                                u_int16_t portB_low, u_int16_t portB_high,
+                                                u_int16_t portC_low, u_int16_t portC_high,
+                                                u_int16_t portD_low, u_int16_t portD_high,
+                                                u_int16_t portE_low, u_int16_t portE_high);
 
 ndpi_port_range* ndpi_build_default_ports(ndpi_port_range *ports,
-					  u_int16_t portA,
-					  u_int16_t portB,
-					  u_int16_t portC,
-					  u_int16_t portD,
-					  u_int16_t portE);
+                                          u_int16_t portA,
+                                          u_int16_t portB,
+                                          u_int16_t portC,
+                                          u_int16_t portD,
+                                          u_int16_t portE);
 
 /* TCP/UDP protocols */
 u_int ndpi_search_tcp_or_udp_raw(struct ndpi_detection_module_struct *ndpi_struct,
-				 struct ndpi_flow_struct *flow,
-				 u_int8_t protocol,
-				 u_int32_t saddr, u_int32_t daddr,
-				 u_int16_t sport, u_int16_t dport);
+                                 struct ndpi_flow_struct *flow,
+                                 u_int8_t protocol,
+                                 u_int32_t saddr, u_int32_t daddr,
+                                 u_int16_t sport, u_int16_t dport);
 
 void ndpi_search_tcp_or_udp(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow);
 

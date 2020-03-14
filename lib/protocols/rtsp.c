@@ -30,88 +30,88 @@
 
 
 static void ndpi_int_rtsp_add_connection(struct ndpi_detection_module_struct *ndpi_struct,
-					 struct ndpi_flow_struct *flow/* , */
-					 /* ndpi_protocol_type_t protocol_type */)
+                                         struct ndpi_flow_struct *flow/* , */
+                                         /* ndpi_protocol_type_t protocol_type */)
 {
-  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_RTSP, NDPI_PROTOCOL_UNKNOWN);
+    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_RTSP, NDPI_PROTOCOL_UNKNOWN);
 }
 
 /* this function searches for a rtsp-"handshake" over tcp or udp. */
 void ndpi_search_rtsp_tcp_udp(struct ndpi_detection_module_struct
-			      *ndpi_struct, struct ndpi_flow_struct *flow)
+                              *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  struct ndpi_id_struct *src = flow->src;
-  struct ndpi_id_struct *dst = flow->dst;
+    struct ndpi_id_struct *src = flow->src;
+    struct ndpi_id_struct *dst = flow->dst;
 
-  NDPI_LOG_DBG(ndpi_struct, "search RTSP\n");
+    NDPI_LOG_DBG(ndpi_struct, "search RTSP\n");
 
-  if (flow->rtsprdt_stage == 0
-      && !(packet->detected_protocol_stack[0] == NDPI_PROTOCOL_RTCP)
-      ) {
-    flow->rtsprdt_stage = 1 + packet->packet_direction;
-    NDPI_LOG_DBG2(ndpi_struct, "maybe handshake 1; need next packet, return\n");
-    return;
-  }
-
-  if (flow->packet_counter < 3 && flow->rtsprdt_stage == 1 + packet->packet_direction) {
-
-    NDPI_LOG_DBG2(ndpi_struct, "maybe handshake 2; need next packet\n");
-    return;
-  }
-
-  if (packet->payload_packet_len > 20 && flow->rtsprdt_stage == 2 - packet->packet_direction) {
-    char buf[32] = { 0 };
-    u_int len = packet->payload_packet_len;
-
-    if(len >= (sizeof(buf)-1)) len = sizeof(buf)-1;
-    strncpy(buf, (const char*)packet->payload, len);
-
-    // RTSP Server Message
-    if((memcmp(packet->payload, "RTSP/1.0 ", 9) == 0)
-       || (strstr(buf, "rtsp://") != NULL)) {
-      NDPI_LOG_DBG2(ndpi_struct, "found RTSP/1.0 \n");
-      if (dst != NULL) {
-	NDPI_LOG_DBG2(ndpi_struct, "found dst\n");
-	ndpi_packet_src_ip_get(packet, &dst->rtsp_ip_address);
-	dst->rtsp_timer = packet->tick_timestamp;
-	dst->rtsp_ts_set = 1;
-      }
-      if (src != NULL) {
-	NDPI_LOG_DBG2(ndpi_struct, "found src\n");
-	ndpi_packet_dst_ip_get(packet, &src->rtsp_ip_address);
-	src->rtsp_timer = packet->tick_timestamp;
-	src->rtsp_ts_set = 1;
-      }
-      NDPI_LOG_INFO(ndpi_struct, "found RTSP\n");
-      flow->rtsp_control_flow = 1;
-      ndpi_int_rtsp_add_connection(ndpi_struct, flow);
-      return;
+    if (flow->rtsprdt_stage == 0
+            && !(packet->detected_protocol_stack[0] == NDPI_PROTOCOL_RTCP)
+            ) {
+        flow->rtsprdt_stage = 1 + packet->packet_direction;
+        NDPI_LOG_DBG2(ndpi_struct, "maybe handshake 1; need next packet, return\n");
+        return;
     }
-  }
-  if (packet->udp != NULL && packet->detected_protocol_stack[0] == NDPI_PROTOCOL_UNKNOWN
-      && ((NDPI_COMPARE_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_RTP) == 0)
-	  || (NDPI_COMPARE_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_RTCP) == 0)
-	  )) {
-    NDPI_LOG_DBG2(ndpi_struct,
-	     "maybe RTSP RTP, RTSP RTCP, RDT; need next packet.\n");
+
+    if (flow->packet_counter < 3 && flow->rtsprdt_stage == 1 + packet->packet_direction) {
+
+        NDPI_LOG_DBG2(ndpi_struct, "maybe handshake 2; need next packet\n");
+        return;
+    }
+
+    if (packet->payload_packet_len > 20 && flow->rtsprdt_stage == 2 - packet->packet_direction) {
+        char buf[32] = { 0 };
+        u_int len = packet->payload_packet_len;
+
+        if(len >= (sizeof(buf)-1)) len = sizeof(buf)-1;
+        strncpy(buf, (const char*)packet->payload, len);
+
+        // RTSP Server Message
+        if((memcmp(packet->payload, "RTSP/1.0 ", 9) == 0)
+                || (strstr(buf, "rtsp://") != NULL)) {
+            NDPI_LOG_DBG2(ndpi_struct, "found RTSP/1.0 \n");
+            if (dst != NULL) {
+                NDPI_LOG_DBG2(ndpi_struct, "found dst\n");
+                ndpi_packet_src_ip_get(packet, &dst->rtsp_ip_address);
+                dst->rtsp_timer = packet->tick_timestamp;
+                dst->rtsp_ts_set = 1;
+            }
+            if (src != NULL) {
+                NDPI_LOG_DBG2(ndpi_struct, "found src\n");
+                ndpi_packet_dst_ip_get(packet, &src->rtsp_ip_address);
+                src->rtsp_timer = packet->tick_timestamp;
+                src->rtsp_ts_set = 1;
+            }
+            NDPI_LOG_INFO(ndpi_struct, "found RTSP\n");
+            flow->rtsp_control_flow = 1;
+            ndpi_int_rtsp_add_connection(ndpi_struct, flow);
+            return;
+        }
+    }
+    if (packet->udp != NULL && packet->detected_protocol_stack[0] == NDPI_PROTOCOL_UNKNOWN
+            && ((NDPI_COMPARE_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_RTP) == 0)
+                || (NDPI_COMPARE_PROTOCOL_TO_BITMASK(flow->excluded_protocol_bitmask, NDPI_PROTOCOL_RTCP) == 0)
+                )) {
+        NDPI_LOG_DBG2(ndpi_struct,
+                      "maybe RTSP RTP, RTSP RTCP, RDT; need next packet.\n");
+        return;
+    }
+
+
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
     return;
-  }
-
-
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-  return;
 }
 
 
 void init_rtsp_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("RTSP", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_RTSP,
-				      ndpi_search_rtsp_tcp_udp,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
-  *id += 1;
+    ndpi_set_bitmask_protocol_detection("RTSP", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_RTSP,
+                                        ndpi_search_rtsp_tcp_udp,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_V4_V6_TCP_OR_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
+    *id += 1;
 }

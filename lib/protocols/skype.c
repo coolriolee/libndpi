@@ -24,117 +24,117 @@
 #include "ndpi_api.h"
 
 static int is_port(u_int16_t a, u_int16_t b, u_int16_t c) {
-  return(((a == c) || (b == c)) ? 1 : 0);
+    return(((a == c) || (b == c)) ? 1 : 0);
 }
 
 static void ndpi_check_skype(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow) {
-  struct ndpi_packet_struct *packet = &flow->packet;
-  // const u_int8_t *packet_payload = packet->payload;
-  u_int32_t payload_len = packet->payload_packet_len;
+    struct ndpi_packet_struct *packet = &flow->packet;
+    // const u_int8_t *packet_payload = packet->payload;
+    u_int32_t payload_len = packet->payload_packet_len;
 
-  /* No need to do ntohl() with 0xFFFFFFFF */
-  if(packet->iph && (packet->iph->daddr == 0xFFFFFFFF /* 255.255.255.255 */)) {
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-    return;
-  }
-
-  if(flow->host_server_name[0] != '\0')
-    return;
-  
-  // UDP check
-  if(packet->udp != NULL) {    
-    flow->l4.udp.skype_packet_id++;
-
-    if(flow->l4.udp.skype_packet_id < 5) {
-      u_int16_t sport = ntohs(packet->udp->source);
-      u_int16_t dport = ntohs(packet->udp->dest);
-
-      /* skype-to-skype */
-      if(is_port(sport, dport, 1119) /* It can be confused with battle.net */
-	 || is_port(sport, dport, 80) /* No HTTP-like protocols UDP/80 */
-	 ) {
-	;
-      } else {
-	/* Too many false positives */
-	if(((payload_len == 3) && ((packet->payload[2] & 0x0F)== 0x0d))
-	   ||
-	   ((payload_len >= 16)
-	    && (((packet->payload[0] & 0xC0) >> 6) == 0x02 /* RTPv2 */
-		|| (((packet->payload[0] & 0xF0) >> 4) == 0 /* Zoom */)
-		|| (((packet->payload[0] & 0xF0) >> 4) == 0x07 /* Skype */)
-		)
-	    && (packet->payload[0] != 0x30) /* Avoid invalid SNMP detection */
-	    && (packet->payload[0] != 0x0)  /* Avoid invalid CAPWAP detection */
-	    && (packet->payload[2] == 0x02))) {
-
-	  if(is_port(sport, dport, 8801))
-	    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_ZOOM, NDPI_PROTOCOL_UNKNOWN);
-	  else
-	    ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SKYPE_CALL, NDPI_PROTOCOL_SKYPE);
-	}
-      }
-      
-      // return;
+    /* No need to do ntohl() with 0xFFFFFFFF */
+    if(packet->iph && (packet->iph->daddr == 0xFFFFFFFF /* 255.255.255.255 */)) {
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        return;
     }
-    
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-    return;
-    // TCP check
-  } else if((packet->tcp != NULL)
-	    /* As the TCP skype heuristic is weak, we need to make sure no other protocols overlap */
-	    && (flow->guessed_host_protocol_id == NDPI_PROTOCOL_UNKNOWN)
-	    && (flow->guessed_protocol_id == NDPI_PROTOCOL_UNKNOWN)) {
-    flow->l4.tcp.skype_packet_id++;
 
-    if(flow->l4.tcp.skype_packet_id < 3) {
-      ; /* Too early */
-    } else if((flow->l4.tcp.skype_packet_id == 3)
-	      /* We have seen the 3-way handshake */
-	      && flow->l4.tcp.seen_syn
-	      && flow->l4.tcp.seen_syn_ack
-	      && flow->l4.tcp.seen_ack) {
-      /* Disabled this logic as it's too weak and leads to false positives */
+    if(flow->host_server_name[0] != '\0')
+        return;
+
+    // UDP check
+    if(packet->udp != NULL) {
+        flow->l4.udp.skype_packet_id++;
+
+        if(flow->l4.udp.skype_packet_id < 5) {
+            u_int16_t sport = ntohs(packet->udp->source);
+            u_int16_t dport = ntohs(packet->udp->dest);
+
+            /* skype-to-skype */
+            if(is_port(sport, dport, 1119) /* It can be confused with battle.net */
+                    || is_port(sport, dport, 80) /* No HTTP-like protocols UDP/80 */
+                    ) {
+                ;
+            } else {
+                /* Too many false positives */
+                if(((payload_len == 3) && ((packet->payload[2] & 0x0F)== 0x0d))
+                        ||
+                        ((payload_len >= 16)
+                         && (((packet->payload[0] & 0xC0) >> 6) == 0x02 /* RTPv2 */
+                             || (((packet->payload[0] & 0xF0) >> 4) == 0 /* Zoom */)
+                             || (((packet->payload[0] & 0xF0) >> 4) == 0x07 /* Skype */)
+                             )
+                         && (packet->payload[0] != 0x30) /* Avoid invalid SNMP detection */
+                         && (packet->payload[0] != 0x0)  /* Avoid invalid CAPWAP detection */
+                         && (packet->payload[2] == 0x02))) {
+
+                    if(is_port(sport, dport, 8801))
+                        ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_ZOOM, NDPI_PROTOCOL_UNKNOWN);
+                    else
+                        ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SKYPE_CALL, NDPI_PROTOCOL_SKYPE);
+                }
+            }
+
+            // return;
+        }
+
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        return;
+        // TCP check
+    } else if((packet->tcp != NULL)
+              /* As the TCP skype heuristic is weak, we need to make sure no other protocols overlap */
+              && (flow->guessed_host_protocol_id == NDPI_PROTOCOL_UNKNOWN)
+              && (flow->guessed_protocol_id == NDPI_PROTOCOL_UNKNOWN)) {
+        flow->l4.tcp.skype_packet_id++;
+
+        if(flow->l4.tcp.skype_packet_id < 3) {
+            ; /* Too early */
+        } else if((flow->l4.tcp.skype_packet_id == 3)
+                  /* We have seen the 3-way handshake */
+                  && flow->l4.tcp.seen_syn
+                  && flow->l4.tcp.seen_syn_ack
+                  && flow->l4.tcp.seen_ack) {
+            /* Disabled this logic as it's too weak and leads to false positives */
 #if 0
-      if((payload_len == 8) || (payload_len == 3) || (payload_len == 17)) {
-	// printf("[SKYPE] payload_len=%u\n", payload_len);
-	/* printf("[SKYPE] %u/%u\n", ntohs(packet->tcp->source), ntohs(packet->tcp->dest)); */
-	
-	NDPI_LOG_INFO(ndpi_struct, "found skype\n");
-	  ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SKYPE_CALL, NDPI_PROTOCOL_SKYPE);
-      } else {
-	// printf("NO [SKYPE] payload_len=%u\n", payload_len);
-      }
+            if((payload_len == 8) || (payload_len == 3) || (payload_len == 17)) {
+                // printf("[SKYPE] payload_len=%u\n", payload_len);
+                /* printf("[SKYPE] %u/%u\n", ntohs(packet->tcp->source), ntohs(packet->tcp->dest)); */
 
-      /* printf("[SKYPE] [id: %u][len: %d]\n", flow->l4.tcp.skype_packet_id, payload_len);  */
+                NDPI_LOG_INFO(ndpi_struct, "found skype\n");
+                ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_SKYPE_CALL, NDPI_PROTOCOL_SKYPE);
+            } else {
+                // printf("NO [SKYPE] payload_len=%u\n", payload_len);
+            }
+
+            /* printf("[SKYPE] [id: %u][len: %d]\n", flow->l4.tcp.skype_packet_id, payload_len);  */
 #endif
-    } else {
-      NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-    }
+        } else {
+            NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+        }
 
-    return;
-  }
+        return;
+    }
 }
 
 void ndpi_search_skype(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search skype\n");
+    NDPI_LOG_DBG(ndpi_struct, "search skype\n");
 
-  /* skip marked packets */
-  if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SKYPE)
-    ndpi_check_skype(ndpi_struct, flow);
+    /* skip marked packets */
+    if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_SKYPE)
+        ndpi_check_skype(ndpi_struct, flow);
 }
 
 
 void init_skype_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("Skype", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_SKYPE,
-				      ndpi_search_skype,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_TCP_OR_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
+    ndpi_set_bitmask_protocol_detection("Skype", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_SKYPE,
+                                        ndpi_search_skype,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_TCP_OR_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }

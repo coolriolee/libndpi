@@ -9,30 +9,34 @@
 typedef uint32_t u_int32_t;
 #endif
 
+#ifdef __KERNEL__
+#include <linux/types.h>
+#else
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
+#endif
 
 /* This is a function ported from the Linux kernel lib/sort.c */
 
 static void u_int32_t_swap(void *a, void *b, int size)
 {
-  u_int32_t t = *(u_int32_t *)a;
-  *(u_int32_t *)a = *(u_int32_t *)b;
-  *(u_int32_t *)b = t;
+    u_int32_t t = *(u_int32_t *)a;
+    *(u_int32_t *)a = *(u_int32_t *)b;
+    *(u_int32_t *)b = t;
 }
 
 static void generic_swap(void *_a, void *_b, int size)
 {
-  char t;
-  char *a = (char*)_a;
-  char *b = (char*)_b;
+    char t;
+    char *a = (char*)_a;
+    char *b = (char*)_b;
 
-  do {
-    t = *a;
-    *a++ = *b;
-    *b++ = t;
-  } while (--size > 0);
+    do {
+        t = *a;
+        *a++ = *b;
+        *b++ = t;
+    } while (--size > 0);
 }
 
 /**
@@ -53,40 +57,40 @@ static void generic_swap(void *_a, void *_b, int size)
  */
 
 void sort(void *_base, size_t num, size_t size,
-	  int (*cmp_func)(const void *, const void *),
-	  void (*swap_func)(void *, void *, int size))
+          int (*cmp_func)(const void *, const void *),
+          void (*swap_func)(void *, void *, int size))
 {
-  /* pre-scale counters for performance */
-  int i = (num/2 - 1) * size, n = num * size, c, r;
-  char *base = (char*)_base;
+    /* pre-scale counters for performance */
+    int i = (num/2 - 1) * size, n = num * size, c, r;
+    char *base = (char*)_base;
 
-  if (!swap_func)
-    swap_func = (size == 4 ? u_int32_t_swap : generic_swap);
+    if (!swap_func)
+        swap_func = (size == 4 ? u_int32_t_swap : generic_swap);
 
-  /* heapify */
-  for ( ; i >= 0; i -= size) {
-    for (r = i; r * 2 + size < n; r  = c) {
-      c = r * 2 + size;
-      if (c < n - size &&
-	  cmp_func(base + c, base + c + size) < 0)
-	c += size;
-      if (cmp_func(base + r, base + c) >= 0)
-	break;
-      swap_func(base + r, base + c, size);
+    /* heapify */
+    for ( ; i >= 0; i -= size) {
+        for (r = i; r * 2 + size < n; r  = c) {
+            c = r * 2 + size;
+            if (c < n - size &&
+                    cmp_func(base + c, base + c + size) < 0)
+                c += size;
+            if (cmp_func(base + r, base + c) >= 0)
+                break;
+            swap_func(base + r, base + c, size);
+        }
     }
-  }
 
-  /* sort */
-  for (i = n - size; i > 0; i -= size) {
-    swap_func(base, base + i, size);
-    for (r = 0; r * 2 + size < i; r = c) {
-      c = r * 2 + size;
-      if (c < i - size &&
-	  cmp_func(base + c, base + c + size) < 0)
-	c += size;
-      if (cmp_func(base + r, base + c) >= 0)
-	break;
-      swap_func(base + r, base + c, size);
+    /* sort */
+    for (i = n - size; i > 0; i -= size) {
+        swap_func(base, base + i, size);
+        for (r = 0; r * 2 + size < i; r = c) {
+            c = r * 2 + size;
+            if (c < i - size &&
+                    cmp_func(base + c, base + c + size) < 0)
+                c += size;
+            if (cmp_func(base + r, base + c) >= 0)
+                break;
+            swap_func(base + r, base + c, size);
+        }
     }
-  }
 }

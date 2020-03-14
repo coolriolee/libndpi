@@ -25,38 +25,38 @@
 
 typedef struct
 {
-  /* The root of the Aho-Corasick trie */
-  AC_NODE_t * root;
+    /* The root of the Aho-Corasick trie */
+    AC_NODE_t * root;
 
-  /* maintain all nodes pointers. it will be used to access or release
+    /* maintain all nodes pointers. it will be used to access or release
    * all nodes. */
-  AC_NODE_t ** all_nodes;
+    AC_NODE_t ** all_nodes;
 
-  unsigned int all_nodes_num; /* Number of all nodes in the automata */
-  unsigned int all_nodes_max; /* Current max allocated memory for *all_nodes */
+    unsigned int all_nodes_num; /* Number of all nodes in the automata */
+    unsigned int all_nodes_max; /* Current max allocated memory for *all_nodes */
 
-  AC_MATCH_t match; /* Any match is reported with this */
-  MATCH_CALLBACK_f match_callback; /* Match call-back function */
+    AC_MATCH_t match; /* Any match is reported with this */
+    MATCH_CALLBACK_f match_callback; /* Match call-back function */
 
-  /* this flag indicates that if automata is finalized by
+    /* this flag indicates that if automata is finalized by
    * ac_automata_finalize() or not. 1 means finalized and 0
    * means not finalized (is open). after finalizing automata you can not
    * add pattern to automata anymore. */
-  unsigned short automata_open;
+    unsigned short automata_open;
 
-  /* Statistic Variables */
-  unsigned long total_patterns; /* Total patterns in the automata */
+    /* Statistic Variables */
+    unsigned long total_patterns; /* Total patterns in the automata */
 
 } AC_AUTOMATA_t;
 
 typedef struct {
-  /* It is possible to feed a large input to the automata chunk by chunk to
+    /* It is possible to feed a large input to the automata chunk by chunk to
    * be searched using ac_automata_search(). in fact by default automata
    * thinks that all chunks are related unless you do ac_automata_reset().
    * followings are variables that keep track of searching state. */
-  AC_NODE_t * current_node; /* Pointer to current node while searching */
-  unsigned long base_position; /* Represents the position of current chunk
-				  related to whole input text */
+    AC_NODE_t * current_node; /* Pointer to current node while searching */
+    unsigned long base_position; /* Represents the position of current chunk
+                  related to whole input text */
 } AC_SEARCH_t;
 
 

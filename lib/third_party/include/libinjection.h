@@ -23,7 +23,11 @@ LIBINJECTION_BEGIN_DECLS
 /*
  * Pull in size_t
  */
+#ifdef __KERNEL__
+#include <linux/string.h>
+#else
 #include <string.h>
+#endif
 
 /*
  * Version info.

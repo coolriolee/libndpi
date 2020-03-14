@@ -28,50 +28,50 @@
 #include "ndpi_api.h"
 
 static void ndpi_check_targus_getdata(struct ndpi_detection_module_struct *ndpi_struct,
-				  struct ndpi_flow_struct *flow) {
-  struct ndpi_packet_struct *packet = &flow->packet;
+                                      struct ndpi_flow_struct *flow) {
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  if(packet->iph) {
-    u_int16_t targus_getdata_port       = ntohs(5201);
-    u_int16_t complex_link_port         = ntohs(5001);
+    if(packet->iph) {
+        u_int16_t targus_getdata_port       = ntohs(5201);
+        u_int16_t complex_link_port         = ntohs(5001);
 
-    if(((packet->tcp != NULL) && ((packet->tcp->dest == targus_getdata_port)
-                             || (packet->tcp->source == targus_getdata_port)
-                             || (packet->tcp->dest == complex_link_port)
-                             || (packet->tcp->source == complex_link_port)))
-      || ((packet->udp != NULL) && ((packet->udp->dest == targus_getdata_port)
-                                || (packet->udp->source == targus_getdata_port)
-                                || (packet->udp->dest == complex_link_port)
-                                || (packet->udp->source == complex_link_port)))) {
+        if(((packet->tcp != NULL) && ((packet->tcp->dest == targus_getdata_port)
+                                      || (packet->tcp->source == targus_getdata_port)
+                                      || (packet->tcp->dest == complex_link_port)
+                                      || (packet->tcp->source == complex_link_port)))
+                || ((packet->udp != NULL) && ((packet->udp->dest == targus_getdata_port)
+                                              || (packet->udp->source == targus_getdata_port)
+                                              || (packet->udp->dest == complex_link_port)
+                                              || (packet->udp->source == complex_link_port)))) {
 
-      NDPI_LOG_INFO(ndpi_struct, "found targus getdata used for speedtest\n");
-      ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_TARGUS_GETDATA, NDPI_PROTOCOL_UNKNOWN);
-      return;
+            NDPI_LOG_INFO(ndpi_struct, "found targus getdata used for speedtest\n");
+            ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_TARGUS_GETDATA, NDPI_PROTOCOL_UNKNOWN);
+            return;
+        }
     }
-  }
 
-  NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
+    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
 }
 
 void ndpi_search_targus_getdata(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search targus getdata\n");
+    NDPI_LOG_DBG(ndpi_struct, "search targus getdata\n");
 
-  /* skip marked packets */
-  if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_TARGUS_GETDATA)
-    ndpi_check_targus_getdata(ndpi_struct, flow);
+    /* skip marked packets */
+    if(packet->detected_protocol_stack[0] != NDPI_PROTOCOL_TARGUS_GETDATA)
+        ndpi_check_targus_getdata(ndpi_struct, flow);
 }
 
 
 void init_targus_getdata_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("TARGUS_GETDATA", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_TARGUS_GETDATA,
-				      ndpi_search_targus_getdata,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_TCP_OR_UDP,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
-  *id += 1;
+    ndpi_set_bitmask_protocol_detection("TARGUS_GETDATA", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_TARGUS_GETDATA,
+                                        ndpi_search_targus_getdata,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_TCP_OR_UDP,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
+    *id += 1;
 }

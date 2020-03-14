@@ -22,7 +22,7 @@
  */
 
 /*
-  http://en.wikipedia.org/wiki/Anything_In_Anything 
+  http://en.wikipedia.org/wiki/Anything_In_Anything
   http://tools.ietf.org/html/rfc4891
 */
 
@@ -33,53 +33,53 @@
 #include "ndpi_api.h"
 
 struct ayiya {
-  u_int8_t flags[3];
-  u_int8_t next_header;
-  u_int32_t epoch;
-  u_int8_t identity[16];
-  u_int8_t signature[20];  
+    u_int8_t flags[3];
+    u_int8_t next_header;
+    u_int32_t epoch;
+    u_int8_t identity[16];
+    u_int8_t signature[20];
 };
 
 void ndpi_search_ayiya(struct ndpi_detection_module_struct *ndpi_struct, struct ndpi_flow_struct *flow)
 {
-  struct ndpi_packet_struct *packet = &flow->packet;
+    struct ndpi_packet_struct *packet = &flow->packet;
 
-  NDPI_LOG_DBG(ndpi_struct, "search AYIYA\n");
+    NDPI_LOG_DBG(ndpi_struct, "search AYIYA\n");
 
-  if(packet->udp && (packet->detected_protocol_stack[0] == NDPI_PROTOCOL_UNKNOWN)) {
-    /* Ayiya is udp based, port 5072 */
-    if ((packet->udp->source == htons(5072) || packet->udp->dest == htons(5072))
-	/* check for ayiya new packet */
-	&& (packet->payload_packet_len > 44)
-	) {
-      /* FINISH */
-      struct ayiya *a = (struct ayiya*)packet->payload;
-      u_int32_t epoch = ntohl(a->epoch), now;
-      u_int32_t fiveyears = 86400 * 365 * 5;
+    if(packet->udp && (packet->detected_protocol_stack[0] == NDPI_PROTOCOL_UNKNOWN)) {
+        /* Ayiya is udp based, port 5072 */
+        if ((packet->udp->source == htons(5072) || packet->udp->dest == htons(5072))
+                /* check for ayiya new packet */
+                && (packet->payload_packet_len > 44)
+                ) {
+            /* FINISH */
+            struct ayiya *a = (struct ayiya*)packet->payload;
+            u_int32_t epoch = ntohl(a->epoch), now;
+            u_int32_t fiveyears = 86400 * 365 * 5;
 
-      now = flow->packet.tick_timestamp;
+            now = flow->packet.tick_timestamp;
 
-      if((epoch >= (now - fiveyears)) && (epoch <= (now+86400 /* 1 day */))) {
-	NDPI_LOG_INFO(ndpi_struct, "found AYIYA\n");
-	ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_AYIYA, NDPI_PROTOCOL_UNKNOWN);
-      }
+            if((epoch >= (now - fiveyears)) && (epoch <= (now+86400 /* 1 day */))) {
+                NDPI_LOG_INFO(ndpi_struct, "found AYIYA\n");
+                ndpi_set_detected_protocol(ndpi_struct, flow, NDPI_PROTOCOL_AYIYA, NDPI_PROTOCOL_UNKNOWN);
+            }
 
-      return;
+            return;
+        }
+
+        NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
     }
-
-    NDPI_EXCLUDE_PROTO(ndpi_struct, flow);
-  }
 }
 
 
 void init_ayiya_dissector(struct ndpi_detection_module_struct *ndpi_struct, u_int32_t *id, NDPI_PROTOCOL_BITMASK *detection_bitmask)
 {
-  ndpi_set_bitmask_protocol_detection("Ayiya", ndpi_struct, detection_bitmask, *id,
-				      NDPI_PROTOCOL_AYIYA,
-				      ndpi_search_ayiya,
-				      NDPI_SELECTION_BITMASK_PROTOCOL_UDP_WITH_PAYLOAD,
-				      SAVE_DETECTION_BITMASK_AS_UNKNOWN,
-				      ADD_TO_DETECTION_BITMASK);
+    ndpi_set_bitmask_protocol_detection("Ayiya", ndpi_struct, detection_bitmask, *id,
+                                        NDPI_PROTOCOL_AYIYA,
+                                        ndpi_search_ayiya,
+                                        NDPI_SELECTION_BITMASK_PROTOCOL_UDP_WITH_PAYLOAD,
+                                        SAVE_DETECTION_BITMASK_AS_UNKNOWN,
+                                        ADD_TO_DETECTION_BITMASK);
 
-  *id += 1;
+    *id += 1;
 }
