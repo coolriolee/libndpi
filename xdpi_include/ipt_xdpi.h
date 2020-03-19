@@ -3,7 +3,7 @@
 
 #include "ndpi_main.h"
 
-#define XDPI_VERSION    1.0
+#define XDPI_VERSION    "1.0"
 
 #define NDPI_PROTOCOL_LONG_STRING "UNKNOWN","FTP_CONTROL","MAIL_POP","MAIL_SMTP","MAIL_IMAP","DNS","IPP","HTTP","MDNS","NTP",\
     "NETBIOS","NFS","SSDP","BGP","SNMP","XDMCP","SMBV1","SYSLOG","DHCP","POSTGRES",\

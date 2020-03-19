@@ -33,6 +33,7 @@
 #include <linux/limits.h>
 #include <linux/ctype.h>
 #include <linux/slab.h>
+#include <asm-generic/div64.h>
 #else
 #include <stdint.h>
 #include <stdio.h>

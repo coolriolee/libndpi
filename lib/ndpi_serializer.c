@@ -341,14 +341,14 @@ static inline void ndpi_serialize_single_uint64(ndpi_private_serializer *seriali
 }
 
 /* ********************************** */
-
+#ifndef __KERNEL__
 /* TODO: fix portability across platforms */
 static inline void ndpi_serialize_single_float(ndpi_private_serializer *serializer,float s)
 {
     memcpy(&serializer->buffer[serializer->status.size_used], &s, sizeof(s));
     serializer->status.size_used += sizeof(float);
 }
-
+#endif
 /* ********************************** */
 
 static inline void ndpi_serialize_single_string(ndpi_private_serializer *serializer,const char *s, u_int16_t slen) 
@@ -421,13 +421,13 @@ static inline void ndpi_deserialize_single_int64(ndpi_private_deserializer *dese
 }
 
 /* ********************************** */
-
+#ifndef __KERNEL__
 /* TODO: fix portability across platforms */
 static inline void ndpi_deserialize_single_float(ndpi_private_deserializer *deserializer,u_int32_t offset, float *s) 
 {
     *s = *(float*)&deserializer->buffer[offset];
 }
-
+#endif
 /* ********************************** */
 
 static inline void ndpi_deserialize_single_string(ndpi_private_deserializer *deserializer,u_int32_t offset, ndpi_string *v) 
@@ -723,7 +723,7 @@ int ndpi_serialize_uint32_int64(ndpi_serializer *_serializer, u_int32_t key, int
 }
 
 /* ********************************** */
-
+#ifndef __KERNEL__
 int ndpi_serialize_uint32_float(ndpi_serializer *_serializer,u_int32_t key, float value,const char *format /* e.f. "%.2f" */)
 {
     ndpi_private_serializer *serializer = (ndpi_private_serializer*)_serializer;
@@ -765,7 +765,7 @@ int ndpi_serialize_uint32_float(ndpi_serializer *_serializer,u_int32_t key, floa
 
     return(0);
 }
-
+#endif
 /* ********************************** */
 
 static int ndpi_serialize_uint32_binary(ndpi_serializer *_serializer, u_int32_t key, const char *value, u_int16_t slen)
@@ -1140,7 +1140,7 @@ int ndpi_serialize_string_uint64(ndpi_serializer *_serializer, const char *key, 
 }
 
 /* ********************************** */
-
+#ifndef __KERNEL__
 static int ndpi_serialize_binary_float(ndpi_serializer *_serializer,const char *key, u_int16_t klen,float value,
                                        const char *format /* e.f. "%.2f" */)
 {
@@ -1202,12 +1202,11 @@ static int ndpi_serialize_binary_float(ndpi_serializer *_serializer,const char *
 
 /* ********************************** */
 
-int ndpi_serialize_string_float(ndpi_serializer *_serializer,const char *key,float value,
-                                const char *format /* e.f. "%.2f" */)
+int ndpi_serialize_string_float(ndpi_serializer *_serializer,const char *key,float value,const char *format /* e.f. "%.2f" */)
 {
     return(ndpi_serialize_binary_float(_serializer, key, strlen(key), value, format));
 }
-
+#endif
 /* ********************************** */
 
 /* Key is a <string, len> pair, value is a raw value */
@@ -1596,9 +1595,11 @@ static inline int ndpi_deserialize_get_single_size(ndpi_private_deserializer *de
     case ndpi_serialization_int64:
         size = sizeof(u_int64_t);
         break;
+#ifndef __KERNEL__
     case ndpi_serialization_float:
         size = sizeof(float);
         break;
+#endif
     case ndpi_serialization_string:
         size = ndpi_deserialize_get_single_string_size(deserializer, offset);
         break;
@@ -1879,7 +1880,7 @@ int ndpi_deserialize_value_int64(ndpi_deserializer *_deserializer,int64_t *value
 }
 
 /* ********************************** */
-
+#ifndef __KERNEL__
 int ndpi_deserialize_value_float(ndpi_deserializer *_deserializer,float *value)
 {
     ndpi_private_deserializer *deserializer = (ndpi_private_deserializer*)_deserializer;
@@ -1908,7 +1909,7 @@ int ndpi_deserialize_value_float(ndpi_deserializer *_deserializer,float *value)
 
     return(0);
 }
-
+#endif
 /* ********************************** */
 
 int ndpi_deserialize_value_string(ndpi_deserializer *_deserializer,ndpi_string *value)
@@ -2049,13 +2050,13 @@ int ndpi_deserialize_clone_all(ndpi_deserializer *deserializer, ndpi_serializer 
             if(key_is_string) ndpi_serialize_binary_int64(serializer, ks.str, ks.str_len, i64);
             else ndpi_serialize_uint32_int64(serializer, k32, i64);
             break;
-
+#ifndef __KERNEL__
         case ndpi_serialization_float:
             ndpi_deserialize_value_float(deserializer, &f);
             if(key_is_string) ndpi_serialize_binary_float(serializer, ks.str, ks.str_len, f, "%.3f");
             else ndpi_serialize_uint32_float(serializer, k32, f, "%.3f");
             break;
-
+#endif
         case ndpi_serialization_string:
             ndpi_deserialize_value_string(deserializer, &vs);
             if(key_is_string) ndpi_serialize_binary_binary(serializer, ks.str, ks.str_len, vs.str, vs.str_len);

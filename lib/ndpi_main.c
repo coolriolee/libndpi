@@ -4383,6 +4383,8 @@ void ndpi_process_extra_packet(struct ndpi_detection_module_struct *ndpi_str,
                                struct ndpi_id_struct *src,
                                struct ndpi_id_struct *dst)
 {
+    u_int64_t temptick;
+
     if(flow == NULL)
         return;
 
@@ -4394,7 +4396,13 @@ void ndpi_process_extra_packet(struct ndpi_detection_module_struct *ndpi_str,
     }
 
     flow->packet.tick_timestamp_l = current_tick_l;
+#ifdef __KERNEL__
+    temptick = current_tick_l;
+    do_div(temptick,ndpi_str->ticks_per_second);
+    flow->packet.tick_timestamp = (u_int32_t)temptick;
+#else
     flow->packet.tick_timestamp = (u_int32_t)(current_tick_l/ndpi_str->ticks_per_second);
+#endif
 
     /* parse packet */
     flow->packet.iph = (struct ndpi_iphdr *)packet;
@@ -4768,6 +4776,7 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
 {
     NDPI_SELECTION_BITMASK_PROTOCOL_SIZE ndpi_selection_packet;
     u_int32_t a;
+    u_int64_t temptick;
     ndpi_protocol ret = { NDPI_PROTOCOL_UNKNOWN, NDPI_PROTOCOL_UNKNOWN, NDPI_PROTOCOL_CATEGORY_UNSPECIFIED };
 
     if(ndpi_str->ndpi_log_level >= NDPI_LOG_TRACE)
@@ -4804,7 +4813,13 @@ ndpi_protocol ndpi_detection_process_packet(struct ndpi_detection_module_struct 
     }
 
     flow->packet.tick_timestamp_l = current_tick_l;
+#ifdef __KERNEL__
+    temptick = current_tick_l;
+    do_div(temptick,ndpi_str->ticks_per_second);
+    flow->packet.tick_timestamp = (u_int32_t)temptick;
+#else
     flow->packet.tick_timestamp = (u_int32_t)(current_tick_l/ndpi_str->ticks_per_second);
+#endif
 
     /* parse packet */
     flow->packet.iph = (struct ndpi_iphdr *)packet;
@@ -6653,8 +6668,7 @@ struct ndpi_lru_cache* ndpi_lru_cache_init(u_int32_t num_entries)
 
     if(!c) return(NULL);
 
-    c->entries = (struct ndpi_lru_cache_entry*)ndpi_calloc(num_entries,
-                                                           sizeof(struct ndpi_lru_cache_entry));
+    c->entries = (struct ndpi_lru_cache_entry*)ndpi_calloc(num_entries,sizeof(struct ndpi_lru_cache_entry));
 
     if(!c->entries) {
         ndpi_free(c);

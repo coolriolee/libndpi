@@ -811,7 +811,9 @@ int ndpi_serialize_uint32_uint32(ndpi_serializer *serializer,u_int32_t key, u_in
 int ndpi_serialize_uint32_uint64(ndpi_serializer *serializer,u_int32_t key, u_int64_t value);
 int ndpi_serialize_uint32_int32(ndpi_serializer *serializer,u_int32_t key, int32_t value);
 int ndpi_serialize_uint32_int64(ndpi_serializer *serializer,u_int32_t key, int64_t value);
+#ifndef __KERNEL__
 int ndpi_serialize_uint32_float(ndpi_serializer *serializer,u_int32_t key, float value,const char *format /* e.f. "%.2f" */);
+#endif
 int ndpi_serialize_uint32_string(ndpi_serializer *serializer,u_int32_t key, const char *value);
 int ndpi_serialize_uint32_boolean(ndpi_serializer *serializer,u_int32_t key, u_int8_t value);
 int ndpi_serialize_string_int32(ndpi_serializer *serializer,const char *key, int32_t value);
@@ -822,7 +824,9 @@ int ndpi_serialize_string_uint64(ndpi_serializer *serializer,const char *key, u_
 int ndpi_serialize_string_string(ndpi_serializer *serializer,const char *key, const char *value);
 int ndpi_serialize_string_binary(ndpi_serializer *serializer,const char *key, const char *_value,u_int16_t vlen);
 int ndpi_serialize_string_raw(ndpi_serializer *_serializer,const char *key, const char *_value,u_int16_t vlen);
+#ifndef __KERNEL__
 int ndpi_serialize_string_float(ndpi_serializer *serializer,const char *key, float value,const char *format /* e.f. "%.2f" */);
+#endif
 int ndpi_serialize_string_boolean(ndpi_serializer *serializer,const char *key, u_int8_t value);
 int ndpi_serialize_end_of_record(ndpi_serializer *serializer);
 int ndpi_serialize_start_of_block(ndpi_serializer *serializer,const char *key);
@@ -851,7 +855,9 @@ int ndpi_deserialize_value_uint32(ndpi_deserializer *deserializer, u_int32_t *va
 int ndpi_deserialize_value_uint64(ndpi_deserializer *deserializer, u_int64_t *value);
 int ndpi_deserialize_value_int32(ndpi_deserializer *deserializer, int32_t *value);
 int ndpi_deserialize_value_int64(ndpi_deserializer *deserializer, int64_t *value);
+#ifndef __KERNEL__
 int ndpi_deserialize_value_float(ndpi_deserializer *deserializer, float *value);
+#endif
 int ndpi_deserialize_value_string(ndpi_deserializer *deserializer, ndpi_string *value);
 
 int ndpi_deserialize_clone_item(ndpi_deserializer *deserializer, ndpi_serializer *serializer);
